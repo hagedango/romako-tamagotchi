@@ -163,6 +163,15 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   display:inline-block;text-decoration:none;
 }
 .ovl-box .gold:active{transform:translateY(3px);box-shadow:none}
+/* ===== はじめての方へ ===== */
+.howto{
+  text-align:left;font-size:13px;line-height:1.8;color:#cbbadf;
+  margin-bottom:20px;display:grid;gap:10px;
+}
+.howto .step{display:flex;gap:8px;align-items:flex-start}
+.howto .step .ico{flex-shrink:0;font-size:15px;line-height:1.6}
+.howto b{color:var(--gold);font-weight:600}
+.ovl-note{font-size:11px;color:#8f7ab0;margin-top:12px;line-height:1.7}
 .name-input{
   width:100%;font-family:'DotGothic16',monospace;font-size:16px;
   padding:10px 12px;border-radius:10px;border:2px solid var(--gold-d);
@@ -229,6 +238,22 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   ※育成状況は自動で保存されます
 </p>
 
+<!-- はじめての方へ -->
+<div class="ovl" id="welcomeOvl">
+  <div class="ovl-box">
+    <h2>👑 ようこそ、ロマ子様の城へ</h2>
+    <p style="margin-bottom:16px">これは、罵倒の女王<b style="color:var(--gold)">「罵尻ロマ子様」</b>のお世話をする、たまごっち風の育成ゲームです。</p>
+    <div class="howto">
+      <div class="step"><span class="ico">🥚</span><span>最初は<b>金の卵</b>。ボタンで温めていると、やがてロマ子様がお生まれになります</span></div>
+      <div class="step"><span class="ico">🍰</span><span><b>エサ・褒め・お掃除</b>でお世話。ほうっておくとゲージが減り、機嫌を損ねると城を去ってしまいます</span></div>
+      <div class="step"><span class="ico">⚡</span><span>「罵倒を賜る」でありがたい罵倒を頂戴し、<b>罵倒図鑑</b>を集めましょう。レアもあります</span></div>
+      <div class="step"><span class="ico">💾</span><span>育成状況は<b>自動で保存</b>。毎日通うとご褒美（？）があります</span></div>
+    </div>
+    <button class="gold" id="b-welcomeOk">下僕として仕えに行く</button>
+    <p class="ovl-note">※罵倒はすべて愛のあるネタです。傷つく一歩手前で止めてくれます</p>
+  </div>
+</div>
+
 <!-- 名前登録 -->
 <div class="ovl" id="nameOvl">
   <div class="ovl-box">
@@ -236,6 +261,7 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
     <p>「ロマ子様に仕えるなら、まず名前だじょ！<br>さっさと書けやブタ野郎！」</p>
     <input class="name-input" id="nameInput" maxlength="10" placeholder="あなたの下僕ネーム">
     <button class="gold" id="b-nameOk">この名で仕える</button>
+    <p class="ovl-note">※ロマ子様があなたを呼ぶときの名前です（10文字まで）<br>空欄のままだと「名無しのブタ」にされます</p>
   </div>
 </div>
 
@@ -999,7 +1025,8 @@ async function init(){
   }
   refreshUI();
   if(!state.name){
-    document.getElementById("nameOvl").classList.add("show");
+    /* 初めての人にはまずゲーム説明→名前入力の順で案内する */
+    document.getElementById("welcomeOvl").classList.add("show");
   }
   if(!state.alive){ showGameOver(); }
   else if(stageIndex()===0){ say(pick(LINES.eggIdle)); }
@@ -1007,6 +1034,11 @@ async function init(){
   else{ say(pick(LINES.welcome)); }
   await saveState();
 }
+document.getElementById("b-welcomeOk").addEventListener("click", ()=>{
+  document.getElementById("welcomeOvl").classList.remove("show");
+  document.getElementById("nameOvl").classList.add("show");
+  document.getElementById("nameInput").focus();
+});
 document.getElementById("b-nameOk").addEventListener("click", async ()=>{
   const v = document.getElementById("nameInput").value.trim();
   state.name = v || "名無しのブタ";
@@ -1046,7 +1078,7 @@ init().catch(e=>{
   if(!state) state = freshState();
   lastMinuteTick = Date.now();
   refreshUI();
-  if(!state.name) document.getElementById("nameOvl").classList.add("show");
+  if(!state.name) document.getElementById("welcomeOvl").classList.add("show");
   say("（起動でちょっとトラブったけど、なんとか立ち上げたじょ！）", 7000);
 });
 </script>
