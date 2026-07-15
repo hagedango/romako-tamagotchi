@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>きんたまごっち 〜罵尻ロマ子様育成機〜</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Shippori+Mincho:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#1a0e24; --shell1:#3d2158; --shell2:#22102f;
+  --gold:#e8b830; --gold-d:#9c7714; --crimson:#c21e4c;
+  --lcd:#d5c8ea; --lcd-dark:#3a2352; --cream:#f5edda; --pink:#f2a0b5;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(ellipse at 50% -10%, #35204e 0%, var(--night) 60%),
+    var(--night);
+  color:var(--cream);
+  font-family:'Shippori Mincho',serif;
+  display:flex;flex-direction:column;align-items:center;
+  padding:20px 12px 48px;
+}
+.title{
+  text-align:center;margin-bottom:4px;
+  font-weight:800;font-size:clamp(22px,6vw,30px);
+  color:var(--gold);letter-spacing:.12em;
+  text-shadow:0 2px 12px rgba(232,184,48,.35);
+}
+.subtitle{
+  text-align:center;font-size:12px;letter-spacing:.28em;
+  color:#b8a4d4;margin-bottom:18px;
+}
+/* ===== 本体（デバイス） ===== */
+.device{
+  width:min(360px,94vw);
+  background:linear-gradient(160deg,var(--shell1),var(--shell2) 70%);
+  border:3px solid var(--gold-d);
+  border-radius:170px 170px 150px 150px / 120px 120px 100px 100px;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.12),
+    inset 0 -14px 30px rgba(0,0,0,.45),
+    0 18px 50px rgba(0,0,0,.6);
+  padding:26px 22px 28px;
+  position:relative;
+}
+.crest{
+  text-align:center;font-size:20px;line-height:1;
+  margin-bottom:8px;filter:drop-shadow(0 0 6px rgba(232,184,48,.6));
+}
+/* ===== 画面 ===== */
+.screen{
+  background:var(--lcd);
+  border:3px solid #120922;
+  border-radius:18px;
+  box-shadow:inset 0 4px 14px rgba(30,10,50,.45);
+  padding:10px 10px 12px;
+  font-family:'DotGothic16',monospace;
+  color:var(--lcd-dark);
+}
+.lcd-top{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-size:13px;margin-bottom:4px;padding:0 2px;
+}
+.lcd-top b{font-size:14px}
+.bubble{
+  min-height:56px;
+  background:rgba(255,255,255,.55);
+  border:2px solid var(--lcd-dark);
+  border-radius:10px;
+  padding:6px 8px;
+  font-size:13px;line-height:1.5;
+  margin-bottom:6px;
+  transition:opacity .4s;
+}
+.bubble.dim{opacity:.55}
+.cv-wrap{display:flex;justify-content:center}
+canvas{
+  image-rendering:pixelated;
+  width:176px;height:176px;
+}
+.servant-line{
+  text-align:center;font-size:11px;margin-top:2px;color:#5e4a82;
+}
+/* ===== ステータス ===== */
+.bars{margin-top:6px;display:grid;gap:5px}
+.bar-row{display:grid;grid-template-columns:64px 1fr 34px;gap:6px;align-items:center;font-size:12px}
+.bar{
+  height:10px;background:rgba(58,35,82,.18);
+  border:1.5px solid var(--lcd-dark);border-radius:6px;overflow:hidden;
+}
+.bar > i{
+  display:block;height:100%;
+  background:var(--lcd-dark);
+  transition:width .5s;
+}
+.bar-row.low .bar > i{background:var(--crimson);animation:pulse 1s infinite}
+.bar-row.low{color:var(--crimson)}
+@keyframes pulse{50%{opacity:.45}}
+/* ===== ボタン ===== */
+.btns{
+  margin-top:16px;
+  display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;
+  padding:0 6px;
+}
+button.cmd{
+  font-family:'Shippori Mincho',serif;font-weight:600;
+  font-size:14px;letter-spacing:.06em;
+  color:var(--cream);
+  background:linear-gradient(180deg,#a51840,#6f0e2b);
+  border:2px solid var(--gold-d);
+  border-radius:999px;
+  padding:11px 6px;
+  cursor:pointer;
+  box-shadow:0 4px 0 #3d0517, inset 0 1px 0 rgba(255,255,255,.25);
+  transition:transform .08s, box-shadow .08s, opacity .3s;
+}
+button.cmd:active{transform:translateY(3px);box-shadow:0 1px 0 #3d0517}
+button.cmd:disabled{opacity:.4;cursor:default}
+button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.subbtns{
+  margin-top:12px;display:flex;gap:10px;justify-content:center;
+}
+.sub{
+  font-family:'Shippori Mincho',serif;font-size:12px;font-weight:600;
+  color:var(--gold);background:transparent;
+  border:1.5px solid var(--gold-d);border-radius:999px;
+  padding:7px 14px;cursor:pointer;letter-spacing:.04em;
+  text-decoration:none;display:inline-block;
+}
+.sub:active{background:rgba(232,184,48,.15)}
+.plate{
+  margin-top:14px;text-align:center;
+  font-size:10px;letter-spacing:.34em;color:#8f7ab0;
+}
+.hint{
+  margin-top:16px;font-size:12px;color:#a892c8;
+  text-align:center;line-height:1.8;max-width:340px;
+}
+/* ===== オーバーレイ共通 ===== */
+.ovl{
+  position:fixed;inset:0;display:none;
+  align-items:center;justify-content:center;
+  background:rgba(10,4,18,.9);z-index:50;padding:20px;
+}
+.ovl.show{display:flex}
+.ovl-box{
+  text-align:center;max-width:340px;width:100%;
+  border:2px solid var(--gold-d);border-radius:20px;
+  background:linear-gradient(170deg,#2c1642,#160a24);
+  padding:30px 24px;
+  max-height:82vh;overflow-y:auto;
+}
+.ovl-box h2{color:var(--gold);font-size:18px;margin-bottom:14px;letter-spacing:.1em}
+.ovl-box h2.danger{color:var(--crimson)}
+.ovl-box p{font-size:13px;line-height:1.9;color:#cbbadf;margin-bottom:20px}
+.ovl-box .gold{
+  font-family:'Shippori Mincho',serif;font-weight:600;font-size:14px;
+  color:#1a0e24;background:linear-gradient(180deg,#f3cf60,#c99a1e);
+  border:none;border-radius:999px;padding:12px 26px;cursor:pointer;
+  box-shadow:0 4px 0 #7a5c0d;
+  display:inline-block;text-decoration:none;
+}
+.ovl-box .gold:active{transform:translateY(3px);box-shadow:none}
+.name-input{
+  width:100%;font-family:'DotGothic16',monospace;font-size:16px;
+  padding:10px 12px;border-radius:10px;border:2px solid var(--gold-d);
+  background:var(--lcd);color:var(--lcd-dark);
+  text-align:center;margin-bottom:18px;
+}
+/* ===== 図鑑 ===== */
+.dex-count{font-size:13px;color:var(--gold);margin-bottom:12px;letter-spacing:.08em}
+.dex-list{display:grid;gap:8px;text-align:left}
+.dex-item{
+  border:1.5px solid #4a2f6e;border-radius:10px;
+  padding:8px 10px;font-size:12px;line-height:1.6;
+  background:rgba(255,255,255,.04);color:#d9cbee;
+}
+.dex-item .r{color:var(--gold);font-size:11px;letter-spacing:.15em}
+.dex-item.locked{color:#6b5590;border-style:dashed}
+.dex-item.rare{border-color:var(--gold)}
+.dex-item.secret{border-color:var(--pink)}
+.dex-item.secret .r{color:var(--pink)}
+.dex-close{margin-top:16px}
+@media (prefers-reduced-motion: reduce){
+  .bar-row.low .bar > i{animation:none}
+}
+</style>
+</head>
+<body>
+
+<h1 class="title">きんたまごっち</h1>
+<p class="subtitle">〜 罵尻ロマ子様ご機嫌うかがい機 〜</p>
+
+<div class="device">
+  <div class="crest">👑</div>
+  <div class="screen">
+    <div class="lcd-top"><b id="stageName">？？？</b><span id="ageLabel">0日目</span></div>
+    <div class="bubble" id="bubble">……。</div>
+    <div class="cv-wrap"><canvas id="cv" width="128" height="128"></canvas></div>
+    <div class="servant-line" id="servantLine"></div>
+    <div class="bars">
+      <div class="bar-row" id="row-hunger"><span>満腹度</span><div class="bar"><i id="bar-hunger"></i></div><span id="val-hunger"></span></div>
+      <div class="bar-row" id="row-mood"><span>ご機嫌</span><div class="bar"><i id="bar-mood"></i></div><span id="val-mood"></span></div>
+      <div class="bar-row" id="row-clean"><span>お美しさ</span><div class="bar"><i id="bar-clean"></i></div><span id="val-clean"></span></div>
+      <div class="bar-row" id="row-xp"><span>忠誠度</span><div class="bar"><i id="bar-xp"></i></div><span id="val-xp"></span></div>
+    </div>
+  </div>
+
+  <div class="btns">
+    <button class="cmd" id="b-feed">🍰 エサを献上</button>
+    <button class="cmd" id="b-praise">👏 褒め称える</button>
+    <button class="cmd" id="b-clean">🧹 お掃除</button>
+    <button class="cmd" id="b-insult">⚡ 罵倒を賜る</button>
+  </div>
+
+  <div class="subbtns">
+    <button class="sub" id="b-dex">📖 罵倒図鑑</button>
+    <button class="sub" id="b-share">𝕏 ポスト</button>
+  </div>
+
+  <div class="plate">ROMAKO ROYAL WORKS</div>
+</div>
+
+<p class="hint">
+  女王は時間とともに腹を空かせ、ご機嫌を損ねられます。<br>
+  「罵倒を賜る」で集めた罵倒は図鑑に記録。レア罵倒もあるぞ！<br>
+  ※育成状況は自動で保存されます
+</p>
+
+<!-- 名前登録 -->
+<div class="ovl" id="nameOvl">
+  <div class="ovl-box">
+    <h2>名を名乗れ、ブタ！</h2>
+    <p>「ロマ子様に仕えるなら、まず名前だじょ！<br>さっさと書けやブタ野郎！」</p>
+    <input class="name-input" id="nameInput" maxlength="10" placeholder="あなたの下僕ネーム">
+    <button class="gold" id="b-nameOk">この名で仕える</button>
+  </div>
+</div>
+
+<!-- 罵倒図鑑 -->
+<div class="ovl" id="dexOvl">
+  <div class="ovl-box">
+    <h2>📖 罵倒図鑑</h2>
+    <div class="dex-count" id="dexCount"></div>
+    <div class="dex-list" id="dexList"></div>
+    <button class="gold dex-close" id="b-dexClose">閉じる</button>
+  </div>
+</div>
+
+<!-- 𝕏ポスト（フォールバック） -->
+<div class="ovl" id="shareOvl">
+  <div class="ovl-box">
+    <h2>𝕏でポスト</h2>
+    <img id="shareImg" alt="ロマ子様ステータスカード"
+      style="width:100%;border-radius:12px;border:1.5px solid var(--gold-d);margin-bottom:12px">
+    <p>①上の画像を長押しして保存<br>②下のボタンでポスト画面を開く<br>③保存した画像を添付してポスト！</p>
+    <a class="gold" id="shareIntent" href="#" target="_blank" rel="noopener">𝕏 ポスト画面を開く</a>
+    <button class="gold" id="b-shareClose" style="margin-top:12px">閉じる</button>
+  </div>
+</div>
+
+<!-- ゲームオーバー -->
+<div class="ovl" id="over">
+  <div class="ovl-box">
+    <h2 class="danger">ロマ子様は城を去りました</h2>
+    <p>「もう知らねぇ！テメェみてぇなブタ、<br>こっちから願い下げだじょ！！」</p>
+    <button class="gold" id="b-restart">土下座して呼び戻す</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ================= 状態管理 ================= */
+const KEY = "romako-tama-v1";
+const STAGES = [
+  { xp: 0,   name: "金の卵" },
+  { xp: 10,  name: "ロマ子様（幼少期）" },
+  { xp: 80,  name: "罵尻ロマ子様" },
+  { xp: 250, name: "罵倒の女王・完全体" }
+];
+const RANKS = [
+  { xp: 0,   name: "子豚" },
+  { xp: 50,  name: "見習いブタ" },
+  { xp: 150, name: "立派なブタ" },
+  { xp: 300, name: "マゾ豚（出荷級）" }
+];
+let state = null;
+let saveBusy = false;
+
+/* --- 保存機能が壊れていてもゲームは必ず動かす --- */
+let storageOk = (typeof window !== "undefined" && !!window.storage);
+let storageWarned = false;
+function withTimeout(p, ms){
+  return Promise.race([
+    Promise.resolve(p),
+    new Promise((_, rej)=>setTimeout(()=>rej(new Error("storage timeout")), ms))
+  ]);
+}
+function storageBroken(){
+  storageOk = false;
+  if(!storageWarned){
+    storageWarned = true;
+    setTimeout(()=>say("（保存機能が不調だじょ…今回の育成はこのページを開いてる間だけ！）", 9000), 1200);
+  }
+}
+
+function freshState(){
+  return {
+    hunger: 80, mood: 80, clean: 80, health: 100,
+    xp: 0, born: Date.now(), last: Date.now(), alive: true,
+    name: null, dex: [], dereSeen: false, lastInsult: null,
+    streak: 0, lastVisit: null
+  };
+}
+async function loadState(){
+  if(storageOk){
+    try{
+      const r = await withTimeout(window.storage.get(KEY), 2500);
+      if(r && r.value){
+        state = Object.assign(freshState(), JSON.parse(r.value));
+        return;
+      }
+    }catch(e){
+      /* 初回（キー無し）や一時エラー。起動は止めない */
+      console.warn("load skipped:", e);
+    }
+  }
+  state = freshState();
+}
+async function saveState(){
+  if(saveBusy || !state) return;
+  state.last = Date.now();
+  if(!storageOk) return;
+  saveBusy = true;
+  try{
+    await withTimeout(window.storage.set(KEY, JSON.stringify(state)), 2500);
+  }catch(e){
+    console.error("save failed", e);
+    storageBroken();
+  }
+  saveBusy = false;
+}
+async function resetGame(){
+  const keepName = state && state.name;
+  const keepDex = state ? state.dex : [];
+  const keepDere = state ? state.dereSeen : false;
+  try{ if(storageOk) await withTimeout(window.storage.delete(KEY), 2500); }catch(e){}
+  state = freshState();
+  state.name = keepName;      // 名前と図鑑は引き継ぎ（コレクションは財産！）
+  state.dex = keepDex;
+  state.dereSeen = keepDere;
+  document.getElementById("over").classList.remove("show");
+  say("へーんだ！…しょうがねぇなぁ、今回だけだじょ。卵からやり直しな！", 8000);
+  await saveState();
+  refreshUI();
+}
+
+/* ================= 罵倒図鑑データ ================= */
+/* r:1=コモン r:2=ツンデレ r:3=レア r:9=シークレット */
+const DEX = [
+  { id:"c01", r:1, t:"おいブタ共！今日も罵倒されに来たのかだじょ！？" },
+  { id:"c02", r:1, t:"ロマ子様の声を聞けるだけでありがたいと思えのだわわ！" },
+  { id:"c03", r:1, t:"テメェ、ロマ子様のありがたい罵倒に感謝しろよ！？" },
+  { id:"c04", r:1, t:"罵倒はサービスなんだかんな！タダで受けてんじゃねぇぞ！" },
+  { id:"c05", r:1, t:"黙って聞けや{NAME}！このブタ野郎！" },
+  { id:"c06", r:1, t:"おめぇらブタ共！ロマ子様の声にひれ伏せ！！" },
+  { id:"c07", r:1, t:"罵倒が欲しいんだろ？この変態ブタが！！" },
+  { id:"c08", r:1, t:"その程度でへばるなよ、情けねぇブタだなぁ！" },
+  { id:"c09", r:1, t:"{NAME}！ブタはブタらしく笑ってろ！" },
+  { id:"c10", r:1, t:"なに落ち込んでんだブタ野郎！クヨクヨすんな！" },
+  { id:"u01", r:2, t:"…ったく、ブタのくせに頑張りやがって…悪くねぇだじょ。" },
+  { id:"u02", r:2, t:"ブタでもやればできんだな、ちょっとは見直しただじょ！" },
+  { id:"u03", r:2, t:"へーんだ！！ロマ子様に褒められてニヤけてんじゃねぇぞ！" },
+  { id:"u04", r:2, t:"傷つける一歩手前で止めてやってんの、分かってんだろ{NAME}？" },
+  { id:"r01", r:3, t:"立派なマゾ豚にして出荷させてやんぞ！！" },
+  { id:"r02", r:3, t:"ホントは嬉しいんだじょ…でも言わせんな{NAME}！" },
+  { id:"e01", r:5, t:"8月10日は罵倒の日！一年で一番ありがたい日だと心得ろ、ブタ共！！" },
+  { id:"e02", r:5, t:"罵倒の日スペシャル！{NAME}、テメェは最高のブタだよ！！…んむ！！言ってやったかんな！！" },
+  { id:"s01", r:9, t:"ブタ共がいるから…ロマ子様、ここまで来れたんだじょ。" }
+];
+const RARITY_LABEL = { 1:"★ コモン", 2:"★★ ツンデレ", 3:"★★★ レア", 5:"◆ 8/10限定", 9:"♥ シークレット" };
+
+function fillName(t){
+  return t.replace(/\{NAME\}/g, state.name || "名無しのブタ");
+}
+let previewEvent = false;
+function isEventDay(){
+  if(previewEvent) return true;
+  const d = new Date();
+  return d.getMonth()===7 && d.getDate()===10; /* 8月10日＝罵倒の日 */
+}
+function rollInsult(){
+  if(isEventDay() && Math.random() < 0.35){
+    const ev = DEX.filter(d=>d.r===5);
+    return ev[Math.floor(Math.random()*ev.length)];
+  }
+  const roll = Math.random();
+  let pool;
+  if(roll < 0.05)      pool = DEX.filter(d=>d.r===3);
+  else if(roll < 0.25) pool = DEX.filter(d=>d.r===2);
+  else                 pool = DEX.filter(d=>d.r===1);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function collectDex(id){
+  if(!state.dex.includes(id)){ state.dex.push(id); return true; }
+  return false;
+}
+
+/* ================= セリフ（正典準拠） ================= */
+const LINES = {
+  feed: [
+    "ふん、まぁまぁのエサだじょ。食ってやんよ！",
+    "タダ飯じゃねぇぞ、感謝しろだじょ！",
+    "んむ！！甘味は別腹なのだわわ！"
+  ],
+  overfeed: ["ロマ子様を太らせてどうすんだ！余ったらテメェが食え、{NAME}！"],
+  praise: [
+    "当然だじょ！ロマ子様は罵倒の女王なのだわわ！",
+    "へーんだ！褒めたって何も出ねぇぞ…んむ、悪くねぇけどな！",
+    "見る目だけは一流だな、{NAME}！"
+  ],
+  praiseFail: ["見え透いたお世辞してんじゃねぇぞブタ野郎！百年早いわ！"],
+  clean: [
+    "ようやく気付いたか。ブタのくせにやるじゃねぇか！",
+    "塵ひとつ残したら承知しねぇかんな！",
+    "んむ！！女王の城はこうでなくちゃな！"
+  ],
+  idleGood: [
+    "んむ！！今日もロマ子様は完璧だじょ！",
+    "{NAME}、ちっとは成長したかだじょ？",
+    "地上波…いつか絶対出てやんだかんな…！"
+  ],
+  hungry: ["腹減っただじょ！！女王を飢えさせる気か{NAME}！"],
+  bored:  ["退屈なのだわわ！！褒めるか罵倒されに来いや！"],
+  dirty:  ["部屋が汚ねぇぞ！ブタ小屋じゃねぇんだかんな！"],
+  crisis: ["…へーんだ。もう知らねぇ…このままなら出てってやるかんな…"],
+  eggIdle: [
+    "……（卵の中から偉そうな気配がする）",
+    "コツ、コツ……（中から「出せ」と聞こえる気がする）"
+  ],
+  eggWarm: [
+    "んむ…！悪くねぇ温もりだじょ…",
+    "もうちょっとなのだわわ…！"
+  ],
+  evolve: [
+    "",
+    "おいブタ！待たせたな！罵倒の女王・ロマ子様の誕生だじょ！！",
+    "見ろブタ共！これが罵倒の女王の姿だじょ！！",
+    "完全体ロマ子様、降臨…！ひれ伏せや{NAME}！！おめぇも出荷級だじょ！！"
+  ],
+  welcome: ["遅ぇぞ{NAME}！どこほっつき歩いてただじょ！"]
+};
+const pick = a => a[Math.floor(Math.random()*a.length)];
+
+let bubbleTimer = null;
+function say(text, hold=6000){
+  const b = document.getElementById("bubble");
+  b.textContent = "「" + fillName(text).replace(/^「|」$/g,"") + "」";
+  b.classList.remove("dim");
+  clearTimeout(bubbleTimer);
+  bubbleTimer = setTimeout(()=>b.classList.add("dim"), hold);
+}
+
+/* ================= ゲームロジック ================= */
+const clamp = v => Math.max(0, Math.min(100, v));
+function stageIndex(){
+  let i = 0;
+  for(let s=0;s<STAGES.length;s++){ if(state.xp >= STAGES[s].xp) i = s; }
+  return i;
+}
+function rankName(){
+  let r = RANKS[0].name;
+  for(const k of RANKS){ if(state.xp >= k.xp) r = k.name; }
+  return r;
+}
+function applyDecay(minutes){
+  if(minutes <= 0 || !state.alive) return;
+  const m = Math.min(minutes, 720);
+  state.hunger = clamp(state.hunger - 1.2*m);
+  state.mood   = clamp(state.mood   - 0.8*m);
+  state.clean  = clamp(state.clean  - 0.5*m);
+  let empty = 0;
+  if(state.hunger<=0) empty++;
+  if(state.mood<=0)   empty++;
+  if(state.clean<=0)  empty++;
+  if(empty>0){ state.health = clamp(state.health - empty*1.2*m); }
+  else{ state.health = clamp(state.health + 0.5*m); }
+  if(state.health<=0){ state.alive = false; }
+}
+
+let lastMinuteTick = Date.now();
+function minuteLoop(){
+  const now = Date.now();
+  const mins = (now - lastMinuteTick)/60000;
+  if(mins >= 1){
+    applyDecay(mins);
+    lastMinuteTick = now;
+    saveState();
+    refreshUI();
+    if(!state.alive) showGameOver();
+  }
+}
+
+function gainXP(n){
+  const before = stageIndex();
+  state.xp += n;
+  const after = stageIndex();
+  if(after > before){
+    say(LINES.evolve[after], 9000);
+    return true;
+  }
+  return false;
+}
+
+/* ================= 隠しデレイベント ================= */
+let dereFx = 0;
+function checkDere(){
+  if(state.dereSeen || !state.alive) return;
+  if(stageIndex() < 2) return;
+  if(state.hunger>=90 && state.mood>=90 && state.clean>=90){
+    state.dereSeen = true;
+    dereFx = Date.now() + 14000;
+    const newly = collectDex("s01");
+    say("…おい、{NAME}。", 4500);
+    setTimeout(()=>say("ブタ共がいるから…ロマ子様、ここまで来れたんだじょ。", 5500), 4600);
+    setTimeout(()=>{
+      say("な、なんだよ！一回しか言わねぇかんな！！んむ！！", 7000);
+      if(newly) setTimeout(()=>say("（シークレット罵倒が図鑑に記録された…！）", 6000), 7200);
+    }, 10300);
+    state.xp += 20;
+    saveState();
+  }
+}
+
+/* ================= 連続出勤（デイリー） ================= */
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
+}
+function dailyGreeting(){
+  state.mood = clamp(state.mood + 10);
+  state.xp += 5;
+  let g;
+  if(isEventDay()) g = "今日は8月10日…罵倒の日だじょ！！ロマ子様の本気、見せてやんよ！！";
+  else if(state.streak===3) g = "連続出勤3日目…三日坊主卒業だな、{NAME}！";
+  else if(state.streak===7) g = "7日連続…どんだけロマ子様が好きなんだよ！ば、罵倒はしてやっかんな！";
+  else if(state.streak>1) g = "連続出勤"+state.streak+"日目か…見上げたブタ根性だじょ！";
+  else g = "よく来たな{NAME}！今日の分の罵倒、くれてやる！";
+  say(g, 6500);
+  setTimeout(()=>{
+    const d = rollInsult();
+    collectDex(d.id);
+    state.lastInsult = d.id;
+    say(fillName(d.t) + "\n（本日の日替わり罵倒！）", 9000);
+    saveState(); refreshUI();
+  }, 6800);
+}
+
+/* ================= アクション ================= */
+const cooldown = {};
+function onCooldown(id){ return cooldown[id] && Date.now() < cooldown[id]; }
+function setCooldown(id, btn, ms=8000){
+  cooldown[id] = Date.now()+ms;
+  btn.disabled = true;
+  setTimeout(()=>{ btn.disabled = false; }, ms);
+}
+
+function doAction(id, btn){
+  if(!state.alive || onCooldown(id)) return;
+  const egg = stageIndex()===0;
+
+  if(egg){
+    const evolved = gainXP(3);
+    if(!evolved) say(pick(LINES.eggWarm));
+  }
+  else if(id==="feed"){
+    if(state.hunger > 95){
+      state.mood = clamp(state.mood - 5);
+      say(pick(LINES.overfeed));
+    }else{
+      state.hunger = clamp(state.hunger + 25);
+      const evolved = gainXP(3);
+      if(!evolved) say(pick(LINES.feed));
+    }
+  }
+  else if(id==="praise"){
+    if(Math.random() < 0.12){
+      state.mood = clamp(state.mood - 3);
+      say(pick(LINES.praiseFail));
+    }else{
+      state.mood = clamp(state.mood + 20);
+      const evolved = gainXP(3);
+      if(!evolved) say(pick(LINES.praise));
+    }
+  }
+  else if(id==="clean"){
+    state.clean = clamp(state.clean + 25);
+    const evolved = gainXP(3);
+    if(!evolved) say(pick(LINES.clean));
+  }
+  else if(id==="insult"){
+    const d = rollInsult();
+    const isNew = collectDex(d.id);
+    state.lastInsult = d.id;
+    state.mood = clamp(state.mood + 10);
+    const evolved = gainXP(d.r>=3 ? 12 : 6);
+    if(!evolved){
+      let suffix = "";
+      if(d.r===5) suffix = "\n（◆ 罵倒の日限定罵倒だじょ！！）";
+      else if(d.r===3) suffix = "\n（★★★ レア罵倒を賜った！）";
+      else if(isNew) suffix = "\n（図鑑に記録された！）";
+      say(fillName(d.t) + suffix, 9000);
+    }
+  }
+  setCooldown(id, btn);
+  checkDere();
+  saveState();
+  refreshUI();
+}
+
+/* ================= 𝕏シェア（画像カード付き） ================= */
+function buildShareText(){
+  const d = DEX.find(x=>x.id===state.lastInsult);
+  const invites = [
+    "罵倒の女王を育てて罵倒される謎ゲー🐷 あなたも出荷されてみない？",
+    "毎日罵倒されに通うブタになっただじょ🐷 次はおめぇの番だ！",
+    "傷つく一歩手前で止めてくれる、優しい（？）罵倒ゲーだじょ🐷"
+  ];
+  let flair = "";
+  if(d.r===5) flair = "◆罵倒の日限定◆\n";
+  else if(d.r===3) flair = "★★★レア罵倒★★★\n";
+  else if(d.r===9) flair = "♥シークレット♥\n";
+  return "👑本日の賜り罵倒👑\n" + flair + "「" + fillName(d.t) + "」\n\n"
+    + invites[Math.floor(Math.random()*invites.length)]
+    + "\n\n#罵尻ロマ子様 #きんたまごっち";
+}
+function wrapJP(g, text, maxW){
+  const lines = []; let cur = "";
+  for(const ch of text){
+    if(g.measureText(cur+ch).width > maxW && cur){ lines.push(cur); cur = ch; }
+    else cur += ch;
+  }
+  if(cur) lines.push(cur);
+  return lines.slice(0,2);
+}
+function buildCard(){
+  const c = document.createElement("canvas");
+  c.width = 480; c.height = 620;
+  const g = c.getContext("2d");
+  const bg = g.createLinearGradient(0,0,0,620);
+  bg.addColorStop(0,"#3d2158"); bg.addColorStop(1,"#1a0e24");
+  g.fillStyle = bg; g.fillRect(0,0,480,620);
+  g.strokeStyle = "#9c7714"; g.lineWidth = 4; g.strokeRect(10,10,460,600);
+  g.textAlign = "center";
+  g.fillStyle = "#e8b830";
+  g.font = 'bold 34px "Shippori Mincho", serif';
+  g.fillText("きんたまごっち", 240, 62);
+  g.fillStyle = "#b8a4d4";
+  g.font = '14px "DotGothic16", monospace';
+  g.fillText("〜罵尻ロマ子様ご機嫌うかがい機〜", 240, 88);
+  /* LCDパネル＋現在のロマ子様 */
+  g.fillStyle = "#d5c8ea";
+  if(g.roundRect){ g.beginPath(); g.roundRect(88,106,304,304,18); g.fill(); }
+  else g.fillRect(88,106,304,304);
+  g.imageSmoothingEnabled = false;
+  g.drawImage(cv, 96, 114, 288, 288);
+  /* ステータス */
+  g.fillStyle = "#f5edda";
+  g.font = 'bold 26px "Shippori Mincho", serif';
+  g.fillText(STAGES[stageIndex()].name, 240, 452);
+  g.fillStyle = "#d9cbee";
+  g.font = '16px "DotGothic16", monospace';
+  g.fillText("下僕：" + (state.name||"？？？") + "（" + rankName() + "）", 240, 482);
+  const days = Math.floor((Date.now()-state.born)/86400000)+1;
+  g.fillText(days + "日目 ／ 連続出勤" + (state.streak||0) + "日", 240, 506);
+  /* 直近の賜り罵倒 */
+  if(state.lastInsult){
+    const d = DEX.find(x=>x.id===state.lastInsult);
+    g.fillStyle = "#e8b830";
+    g.font = '15px "DotGothic16", monospace';
+    const lines = wrapJP(g, "「" + fillName(d.t) + "」", 420);
+    lines.forEach((ln,i)=>g.fillText(ln, 240, 540 + i*22));
+  }
+  g.fillStyle = "#8f7ab0";
+  g.font = '13px "DotGothic16", monospace';
+  g.fillText("#罵尻ロマ子様 #きんたまごっち", 240, 598);
+  return c;
+}
+function openShareOverlay(card, text){
+  document.getElementById("shareImg").src = card.toDataURL("image/png");
+  document.getElementById("shareIntent").href =
+    "https://x.com/intent/post?text=" + encodeURIComponent(text);
+  document.getElementById("shareOvl").classList.add("show");
+}
+async function shareToX(){
+  if(!state.lastInsult){
+    say("まだ罵倒を賜ってねぇだろ！順番ってもんがあんだじょ！");
+    return;
+  }
+  const card = buildCard();
+  const text = buildShareText();
+  card.toBlob(async (blob)=>{
+    /* 第一手段：共有シート（画像＋文章をそのままXへ） */
+    if(blob && navigator.canShare){
+      const file = new File([blob], "kintamagotchi.png", { type:"image/png" });
+      if(navigator.canShare({ files:[file] })){
+        try{
+          await navigator.share({ text: text, files: [file] });
+          say("𝕏に持ってけ、{NAME}！ロマ子様の名を世界に広めてこい！！", 6000);
+          return;
+        }catch(e){
+          if(e && e.name === "AbortError") return; /* ユーザーがキャンセル */
+        }
+      }
+    }
+    /* 第二手段：カード画像＋ポスト画面リンク */
+    openShareOverlay(card, text);
+  }, "image/png");
+}
+
+/* ================= 図鑑UI ================= */
+function openDex(){
+  const list = document.getElementById("dexList");
+  list.innerHTML = "";
+  let got = 0;
+  for(const d of DEX){
+    const has = state.dex.includes(d.id);
+    if(has) got++;
+    const div = document.createElement("div");
+    div.className = "dex-item" + (has?"":" locked") + (d.r===3||d.r===5?" rare":"") + (d.r===9?" secret":"");
+    const r = document.createElement("div");
+    r.className = "r";
+    r.textContent = RARITY_LABEL[d.r];
+    const t = document.createElement("div");
+    let lockText = "？？？";
+    if(d.r===9) lockText = "？？？（ある条件で女王の本音が…）";
+    if(d.r===5) lockText = "？？？（8月10日に何かが…）";
+    t.textContent = has ? fillName(d.t) : lockText;
+    div.appendChild(r); div.appendChild(t);
+    list.appendChild(div);
+  }
+  document.getElementById("dexCount").textContent =
+    "収集状況：全" + DEX.length + "種中 " + got + "種";
+  document.getElementById("dexOvl").classList.add("show");
+}
+
+/* ================= UI 更新 ================= */
+function setBar(name, val, low=20){
+  document.getElementById("bar-"+name).style.width = val+"%";
+  document.getElementById("val-"+name).textContent = Math.round(val);
+  document.getElementById("row-"+name).classList.toggle("low", val<=low);
+}
+function refreshUI(){
+  const si = stageIndex();
+  document.getElementById("stageName").textContent = STAGES[si].name;
+  const days = Math.floor((Date.now()-state.born)/86400000)+1;
+  document.getElementById("ageLabel").textContent = days+"日目";
+  setBar("hunger", state.hunger);
+  setBar("mood",   state.mood);
+  setBar("clean",  state.clean);
+  const next = STAGES[si+1];
+  if(next){
+    const prev = STAGES[si].xp;
+    setBar("xp", clamp((state.xp - prev)/(next.xp - prev)*100), -1);
+  }else{
+    setBar("xp", 100, -1);
+  }
+  const ev = isEventDay();
+  document.querySelector(".crest").textContent = ev ? "🎉" : "👑";
+  document.getElementById("servantLine").textContent =
+    (ev ? "🎉罵倒の日🎉 " : "") + "下僕：" + (state.name || "？？？") +
+    "（" + rankName() + "）／連続" + (state.streak||0) + "日";
+  const egg = si===0;
+  document.getElementById("b-feed").textContent   = egg? "🔥 温める" : "🍰 エサを献上";
+  document.getElementById("b-praise").textContent = egg? "🔥 温める" : "👏 褒め称える";
+  document.getElementById("b-clean").textContent  = egg? "🔥 温める" : "🧹 お掃除";
+  document.getElementById("b-insult").textContent = egg? "🔥 温める" : "⚡ 罵倒を賜る";
+}
+function showGameOver(){
+  document.getElementById("over").classList.add("show");
+}
+
+/* ================= アイドルセリフ ================= */
+setInterval(()=>{
+  if(!state || !state.alive) return;
+  if(!document.getElementById("bubble").classList.contains("dim")) return;
+  const si = stageIndex();
+  if(si===0){ say(pick(LINES.eggIdle)); return; }
+  if(state.health < 40){ say(pick(LINES.crisis), 8000); return; }
+  const lows = [];
+  if(state.hunger<=25) lows.push("hungry");
+  if(state.mood<=25)   lows.push("bored");
+  if(state.clean<=25)  lows.push("dirty");
+  if(lows.length){ say(pick(LINES[pick(lows)])); }
+  else{ say(pick(LINES.idleGood)); }
+}, 22000);
+
+/* ================= ドット絵描画 ================= */
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const S = 4;
+const COL = {
+  K:"#2f2a4a", H:"#4a4a9d", Hd:"#37377a", S:"#f6ddc9",
+  W:"#fdf7ff", G:"#e8b830", R:"#d22a3c", Rd:"#8e1136",
+  P:"#f2a0b5", EL:"#468284", ER:"#ff6984",
+  Db:"#89cff0", Pl:"#ffc0cb", HT:"#2a2430", SH:"#1c1826", TQ:"#7fe0d8", Eg:"#f7e9bd"
+};
+function P(x,y,w,h,c){ ctx.fillStyle=c; ctx.fillRect(x*S, y*S, w*S, h*S); }
+
+function moodFace(){
+  if(dereFx > Date.now()) return "happy";
+  const min = Math.min(state.hunger, state.mood, state.clean);
+  if(!state.alive || min<=15 || state.health<40) return "angry";
+  const avg = (state.hunger+state.mood+state.clean)/3;
+  return avg>=65 ? "happy" : "normal";
+}
+
+function drawEgg(){
+  P(13,4,2,2,COL.G); P(15,3,2,3,COL.G); P(17,4,2,2,COL.G); P(12,6,8,1,COL.G);
+  P(15,4,2,1,COL.R);
+  P(13,7,6,1,COL.Eg); P(12,8,8,1,COL.Eg); P(11,9,10,2,COL.Eg);
+  P(10,11,12,9,COL.Eg); P(11,20,10,1,COL.Eg); P(12,21,8,1,COL.Eg);
+  drawPinX(12,13,COL.R); drawPinX(17,13,COL.R);
+  P(13,18,1,1,COL.EL); P(18,18,1,1,COL.ER);
+  if(state.xp >= 6){
+    P(15,10,1,2,COL.K); P(16,12,1,1,COL.K); P(15,13,1,1,COL.K);
+  }
+}
+
+function drawFace(x0, y0, mood, blink){
+  if(blink){
+    P(x0+2,y0+4,3,1,COL.K); P(x0+7,y0+4,3,1,COL.K);
+    return;
+  }
+  /* オッドアイ：向かって左＝青、向かって右＝赤 */
+  if(mood==="angry"){
+    P(x0+2,y0+2,3,1,COL.K); P(x0+7,y0+2,3,1,COL.K); /* 眉 */
+  }
+  P(x0+2,y0+3,2,2,COL.EL); P(x0+2,y0+3,1,1,COL.W);
+  P(x0+8,y0+3,2,2,COL.ER); P(x0+8,y0+3,1,1,COL.W);
+  if(mood==="angry"){
+    P(x0+4,y0+6,4,1,COL.K);
+  }else if(mood==="happy"){
+    P(x0+5,y0+6,2,1,COL.R);
+    P(x0,y0+5,2,1,COL.P); P(x0+10,y0+5,2,1,COL.P);
+  }else{
+    P(x0+5,y0+6,2,1,COL.K);
+  }
+}
+
+function drawCrown(cx, y, big){
+  if(big){
+    P(cx-4,y+1,2,3,COL.G); P(cx-1,y,2,4,COL.G); P(cx+2,y+1,2,3,COL.G);
+    P(cx-5,y+4,10,1,COL.G); P(cx-1,y+1,2,1,COL.R);
+  }else{
+    P(cx-3,y+1,1,2,COL.G); P(cx-1,y,2,3,COL.G); P(cx+2,y+1,1,2,COL.G);
+    P(cx-4,y+3,8,1,COL.G);
+  }
+}
+
+/* ミニハット（黒・小薔薇付き） */
+function drawHat(cx, y){
+  P(cx-2,y,5,3,COL.HT);
+  P(cx-3,y+3,7,1,COL.HT);
+  P(cx-2,y+2,5,1,COL.Hd);
+  P(cx+2,y+1,1,1,COL.R);
+}
+/* 赤いバッテンヘアピン */
+function drawPinX(x,y,c){
+  P(x,y,1,1,c); P(x+2,y,1,1,c); P(x+1,y+1,1,1,c);
+  P(x,y+2,1,1,c); P(x+2,y+2,1,1,c);
+}
+function drawPins(){
+  drawPinX(10,9,COL.R); drawPinX(19,9,COL.R);
+}
+
+function drawChibi(mood, blink){
+  /* 後ろ髪（ストレート） */
+  P(7,10,3,11,COL.H); P(22,10,3,11,COL.H);
+  P(7,20,3,2,COL.Hd); P(22,20,3,2,COL.Hd);
+  /* 頭とアホ毛 */
+  P(9,7,14,6,COL.H); P(8,9,2,4,COL.H); P(22,9,2,4,COL.H);
+  P(16,5,1,1,COL.H); P(17,4,1,1,COL.H); P(16,3,1,1,COL.H);
+  /* 顔 */
+  P(10,13,12,7,COL.S);
+  P(10,13,2,1,COL.H); P(13,13,2,1,COL.H); P(16,13,2,1,COL.H); P(19,13,3,1,COL.H);
+  drawFace(10,13,mood,blink);
+  drawPins();
+  /* ワンピース（青＋チェック柄／8月10日は祭り紅） */
+  const em = isEventDay();
+  const D1 = em ? COL.R : COL.Db;
+  const D2 = em ? COL.G : COL.Pl;
+  P(13,20,6,1,COL.W);
+  P(12,21,8,2,D1); P(11,23,10,2,D1); P(10,25,12,1,D1);
+  P(16,23,5,3,D2); P(17,24,1,1,COL.W); P(19,23,1,1,COL.W);
+  P(15,21,2,2,COL.Hd);
+  /* 靴下と靴 */
+  P(13,26,2,1,COL.W); P(17,26,2,1,COL.W);
+  P(13,27,2,1,COL.SH); P(17,27,2,1,COL.SH);
+}
+
+function drawQueen(mood, blink, live, final, frame){
+  const em = isEventDay();
+  const D1 = em ? COL.R : COL.Db;   /* 8/10は祭り紅 */
+  const D2 = em ? COL.G : COL.Pl;
+  /* 後ろ髪ロング */
+  P(6,10,3,14,COL.H); P(23,10,3,14,COL.H);
+  P(6,23,3,2,COL.Hd); P(23,23,3,2,COL.Hd);
+  /* 頭とアホ毛 */
+  P(8,6,16,6,COL.H); P(7,8,2,5,COL.H); P(23,8,2,5,COL.H);
+  P(16,4,1,1,COL.H); P(17,3,1,1,COL.H); P(16,2,1,1,COL.H);
+  drawHat(11,1);
+  /* 顔 */
+  P(10,12,12,8,COL.S);
+  P(10,12,2,1,COL.H); P(13,12,2,1,COL.H); P(16,12,2,1,COL.H); P(19,12,3,1,COL.H);
+  drawFace(10,12,mood,blink);
+  drawPins();
+  /* 白ブラウス＋袖 */
+  P(13,20,6,1,COL.W);
+  P(9,20,2,4,COL.W); P(21,20,2,4,COL.W);
+  /* 胸元＋ネクタイ */
+  P(12,21,8,2,D1); P(15,21,2,2,COL.Hd);
+  /* スカート（左：青、右：チェック柄） */
+  P(10,23,12,2,D1); P(9,25,14,2,D1);
+  P(16,23,6,4,D2); P(17,24,1,1,COL.W); P(19,25,1,1,COL.W); P(20,23,1,1,COL.W);
+  P(13,24,1,1,COL.P); P(14,25,1,1,COL.TQ);
+  if(live){
+    /* ライブ衣装：フリル＋ステージ照明 */
+    P(9,27,14,1,D2);
+    if(frame%2===0){
+      P(10,27,1,1,COL.TQ); P(15,27,1,1,COL.TQ); P(20,27,1,1,COL.TQ);
+    }
+  }else{
+    P(13,27,2,1,COL.W); P(18,27,2,1,COL.W);
+  }
+  if(final && frame%2===0){
+    P(4,7,1,1,COL.G); P(27,5,1,1,COL.G); P(3,20,1,1,COL.G); P(28,18,1,1,COL.G);
+  }
+}
+
+function drawHearts(frame){
+  const spots = [[5,6],[26,8],[4,18],[27,20],[8,3],[24,2]];
+  for(let i=0;i<spots.length;i++){
+    if((frame+i)%3===0) continue;
+    const [x,y] = spots[i];
+    P(x,y,1,1,COL.P); P(x+2,y,1,1,COL.P);
+    P(x,y+1,3,1,COL.P); P(x+1,y+2,1,1,COL.P);
+  }
+}
+/* 罵倒の日：紙吹雪 */
+function drawConfetti(frame){
+  const cols = [3,8,13,19,25,29];
+  const cs = [COL.R,COL.G,COL.TQ,COL.Pl,COL.ER,COL.Db];
+  for(let i=0;i<cols.length;i++){
+    const y = (frame + i*6) % 31;
+    P(cols[i], y, 1, 1, cs[i%cs.length]);
+  }
+}
+
+let frame = 0;
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function render(){
+  frame++;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  if(!state) return;
+  const bob = (!reduceMotion && frame%4<2) ? 1 : 0;
+  const blink = frame%16===0;
+  const mood = moodFace();
+  ctx.save();
+  ctx.translate(0, bob*S);
+  const si = stageIndex();
+  if(si===0)      drawEgg();
+  else if(si===1) drawChibi(mood, blink);
+  else            drawQueen(mood, blink, si===3, si===3, frame);
+  ctx.restore();
+  if(isEventDay()) drawConfetti(frame);
+  if(dereFx > Date.now()) drawHearts(frame);
+}
+setInterval(render, 250);
+
+/* ================= 初期化 ================= */
+async function init(){
+  document.getElementById("bubble").textContent = "……お目覚めをお待ちください。";
+  await loadState();
+  const offMins = (Date.now() - (state.last||Date.now()))/60000;
+  applyDecay(offMins);
+  lastMinuteTick = Date.now();
+  /* 連続出勤カウント */
+  const today = todayStr();
+  let newDay = false;
+  if(state.lastVisit !== today){
+    newDay = true;
+    const y = new Date(Date.now()-86400000);
+    const yStr = y.getFullYear()+"-"+(y.getMonth()+1)+"-"+y.getDate();
+    state.streak = (state.lastVisit === yStr) ? (state.streak||0)+1 : 1;
+    state.lastVisit = today;
+  }
+  refreshUI();
+  if(!state.name){
+    document.getElementById("nameOvl").classList.add("show");
+  }
+  if(!state.alive){ showGameOver(); }
+  else if(stageIndex()===0){ say(pick(LINES.eggIdle)); }
+  else if(newDay){ dailyGreeting(); }
+  else{ say(pick(LINES.welcome)); }
+  await saveState();
+}
+document.getElementById("b-nameOk").addEventListener("click", async ()=>{
+  const v = document.getElementById("nameInput").value.trim();
+  state.name = v || "名無しのブタ";
+  document.getElementById("nameOvl").classList.remove("show");
+  say("んむ！！{NAME}か…覚えてやっただじょ！せいぜい励めやブタ野郎！", 8000);
+  await saveState();
+  refreshUI();
+});
+document.getElementById("b-feed").addEventListener("click", e=>doAction("feed", e.currentTarget));
+document.getElementById("b-praise").addEventListener("click", e=>doAction("praise", e.currentTarget));
+document.getElementById("b-clean").addEventListener("click", e=>doAction("clean", e.currentTarget));
+document.getElementById("b-insult").addEventListener("click", e=>doAction("insult", e.currentTarget));
+document.getElementById("b-dex").addEventListener("click", openDex);
+document.getElementById("b-dexClose").addEventListener("click", ()=>document.getElementById("dexOvl").classList.remove("show"));
+document.getElementById("b-share").addEventListener("click", shareToX);
+document.getElementById("b-shareClose").addEventListener("click", ()=>document.getElementById("shareOvl").classList.remove("show"));
+/* 隠しコマンド：👑を5回タップで罵倒の日プレビュー */
+let crestTaps = 0, crestTimer = null;
+document.querySelector(".crest").addEventListener("click", ()=>{
+  crestTaps++;
+  clearTimeout(crestTimer);
+  crestTimer = setTimeout(()=>{ crestTaps = 0; }, 1500);
+  if(crestTaps >= 5){
+    crestTaps = 0;
+    previewEvent = !previewEvent;
+    say(previewEvent ? "（👑を5回タップ…罵倒の日プレビュー：ONだじょ！）"
+                     : "（罵倒の日プレビュー：OFFだじょ）", 5000);
+    refreshUI();
+  }
+});
+document.getElementById("b-restart").addEventListener("click", resetGame);
+setInterval(minuteLoop, 5000);
+setInterval(saveState, 30000);
+/* 起動は何があっても止めない */
+init().catch(e=>{
+  console.error("init failed", e);
+  if(!state) state = freshState();
+  lastMinuteTick = Date.now();
+  refreshUI();
+  if(!state.name) document.getElementById("nameOvl").classList.add("show");
+  say("（起動でちょっとトラブったけど、なんとか立ち上げたじょ！）", 7000);
+});
+</script>
+</body>
+</html>
