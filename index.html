@@ -227,6 +227,7 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   <div class="subbtns">
     <button class="sub" id="b-dex">📖 罵倒図鑑</button>
     <button class="sub" id="b-share">𝕏 ポスト</button>
+    <button class="sub" id="b-sound">🔇 おと</button>
   </div>
 
   <div class="plate">ROMAKO ROYAL WORKS</div>
@@ -248,6 +249,12 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
       <div class="step"><span class="ico">🍰</span><span><b>エサ・褒め・お掃除</b>でお世話。ほうっておくとゲージが減り、機嫌を損ねると城を去ってしまいます</span></div>
       <div class="step"><span class="ico">⚡</span><span>「罵倒を賜る」でありがたい罵倒を頂戴し、<b>罵倒図鑑</b>を集めましょう。レアもあります</span></div>
       <div class="step"><span class="ico">💾</span><span>育成状況は<b>自動で保存</b>。毎日通うとご褒美（？）があります</span></div>
+    </div>
+    <p style="margin-bottom:8px"><b style="color:var(--gold)">🎯 目指すもの</b></p>
+    <div class="howto" style="margin-bottom:20px">
+      <div class="step"><span class="ico">①</span><span>お世話を続けて<b>罵倒の女王・罵尻ロマ子様（最終）</b>まで進化させる。ゴールを目指して頑張れ！</span></div>
+      <div class="step"><span class="ico">②</span><span><b>罵倒図鑑を全種類コンプリート</b>する（レア・限定・シークレットあり）</span></div>
+      <div class="step"><span class="ico">③</span><span>毎日通って<b>連続出勤記録</b>を伸ばす</span></div>
     </div>
     <button class="gold" id="b-welcomeOk">下僕として仕えに行く</button>
     <p class="ovl-note">※罵倒はすべて愛のあるネタです。傷つく一歩手前で止めてくれます</p>
@@ -301,29 +308,33 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 /* ================= 状態管理 ================= */
 const KEY = "romako-tama-v1";
 const STAGES = [
-  { xp: 0,   name: "金の卵" },
-  { xp: 10,  name: "ロマ子様（幼少期）" },
-  { xp: 80,  name: "罵尻ロマ子様" },
-  { xp: 250, name: "罵倒の女王・完全体" }
+  { xp: 0,    name: "金の卵" },
+  { xp: 40,   name: "ロマ子様（幼少期）" },
+  { xp: 250,  name: "ロマ子様（少女期）" },
+  { xp: 450,  name: "見習い罵尻ロマ子様" },
+  { xp: 700,  name: "罵尻ロマ子様（ヤミ子）" },
+  { xp: 1000, name: "罵倒の女王・罵尻ロマ子様（最終）" }
 ];
 const RANKS = [
-  { xp: 0,   name: "子豚" },
-  { xp: 50,  name: "見習いブタ" },
-  { xp: 150, name: "立派なブタ" },
-  { xp: 300, name: "マゾ豚（出荷級）" }
+  { xp: 0,    name: "子豚" },
+  { xp: 150,  name: "見習いブタ" },
+  { xp: 550,  name: "立派なブタ" },
+  { xp: 1100, name: "マゾ豚（出荷級）" }
 ];
 let state = null;
 let saveBusy = false;
 
 /* --- 保存機能が壊れていてもゲームは必ず動かす --- */
-let storageOk = (typeof window !== "undefined" && !!window.storage);
-let storageWarned = false;
-function withTimeout(p, ms){
-  return Promise.race([
-    Promise.resolve(p),
-    new Promise((_, rej)=>setTimeout(()=>rej(new Error("storage timeout")), ms))
-  ]);
+function storageAvailable(){
+  try{
+    const t = "__romako_test__";
+    localStorage.setItem(t, "1");
+    localStorage.removeItem(t);
+    return true;
+  }catch(e){ return false; }
 }
+let storageOk = storageAvailable();
+let storageWarned = false;
 function storageBroken(){
   storageOk = false;
   if(!storageWarned){
@@ -337,15 +348,16 @@ function freshState(){
     hunger: 80, mood: 80, clean: 80, health: 100,
     xp: 0, born: Date.now(), last: Date.now(), alive: true,
     name: null, dex: [], dereSeen: false, lastInsult: null,
-    streak: 0, lastVisit: null
+    streak: 0, lastVisit: null, sound: false,
+    xpToday: 0, xpDay: null, capDay: null
   };
 }
 async function loadState(){
   if(storageOk){
     try{
-      const r = await withTimeout(window.storage.get(KEY), 2500);
-      if(r && r.value){
-        state = Object.assign(freshState(), JSON.parse(r.value));
+      const raw = localStorage.getItem(KEY);
+      if(raw){
+        state = Object.assign(freshState(), JSON.parse(raw));
         return;
       }
     }catch(e){
@@ -361,7 +373,7 @@ async function saveState(){
   if(!storageOk) return;
   saveBusy = true;
   try{
-    await withTimeout(window.storage.set(KEY, JSON.stringify(state)), 2500);
+    localStorage.setItem(KEY, JSON.stringify(state));
   }catch(e){
     console.error("save failed", e);
     storageBroken();
@@ -372,12 +384,15 @@ async function resetGame(){
   const keepName = state && state.name;
   const keepDex = state ? state.dex : [];
   const keepDere = state ? state.dereSeen : false;
-  try{ if(storageOk) await withTimeout(window.storage.delete(KEY), 2500); }catch(e){}
+  const keepSound = state ? state.sound : false;
+  try{ if(storageOk) localStorage.removeItem(KEY); }catch(e){}
   state = freshState();
   state.name = keepName;      // 名前と図鑑は引き継ぎ（コレクションは財産！）
   state.dex = keepDex;
   state.dereSeen = keepDere;
+  state.sound = keepSound;
   document.getElementById("over").classList.remove("show");
+  Sound.startBgm();           // ゲームオーバーで止めたBGMを再開
   say("へーんだ！…しょうがねぇなぁ、今回だけだじょ。卵からやり直しな！", 8000);
   await saveState();
   refreshUI();
@@ -470,11 +485,25 @@ const LINES = {
     "んむ…！悪くねぇ温もりだじょ…",
     "もうちょっとなのだわわ…！"
   ],
+  eggTalk: [
+    "……（卵がかすかに震えた気がする）",
+    "んっ…！聞こえてるだじょ、たぶん…"
+  ],
+  eggLullaby: [
+    "♪～（子守唄で卵がまどろんでいる…？）",
+    "んむ…歌、悪くねぇだじょ…（すやすや）"
+  ],
+  eggPray: [
+    "……（卵の温度が心なしか上がった気がする）",
+    "無事に生まれてこいだじょ…（ってばよ）"
+  ],
   evolve: [
     "",
     "おいブタ！待たせたな！罵倒の女王・ロマ子様の誕生だじょ！！",
+    "んむ…！ちったァ大きくなったじょ！まだまだこれからだかんな、{NAME}！",
     "見ろブタ共！これが罵倒の女王の姿だじょ！！",
-    "完全体ロマ子様、降臨…！ひれ伏せや{NAME}！！おめぇも出荷級だじょ！！"
+    "……ふふ、ヤミ子の目覚めだじょ。罵倒に闇の深みが出たかんな…！！",
+    "最終形態・罵尻ロマ子様、降臨…！！ひれ伏せや{NAME}！！おめぇも最高のブタだじょ！！"
   ],
   welcome: ["遅ぇぞ{NAME}！どこほっつき歩いてただじょ！"]
 };
@@ -487,6 +516,82 @@ function say(text, hold=6000){
   b.classList.remove("dim");
   clearTimeout(bubbleTimer);
   bubbleTimer = setTimeout(()=>b.classList.add("dim"), hold);
+}
+
+/* ================= サウンド（Web Audioでピコピコ音を生成） ================= */
+const Sound = (()=>{
+  let ac = null, master = null, bgmGain = null, sfxGain = null;
+  let enabled = false, seqTimer = null, nextLoopTime = 0;
+  const F = m => 440 * Math.pow(2, (m - 69) / 12); /* MIDIノート番号→周波数 */
+  const BPM = 132, STEP = 60 / BPM / 2;            /* 8分音符の長さ */
+  /* メロディ（8分×32歩＝4小節ループ、0は休符） */
+  const MEL = [
+    76,0,79,0, 84,0,79,76,  74,76,77,0, 76,74,72,0,
+    76,0,79,0, 84,0,81,79,  81,79,76,74, 72,0,0,0
+  ];
+  /* ベース（4分音符×16） */
+  const BAS = [
+    48,55,57,55, 53,55,48,55,
+    48,55,57,55, 53,55,48,48
+  ];
+  function ensure(){
+    if(!ac){
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      master = ac.createGain(); master.gain.value = 0.5; master.connect(ac.destination);
+      bgmGain = ac.createGain(); bgmGain.gain.value = 0.35; bgmGain.connect(master);
+      sfxGain = ac.createGain(); sfxGain.gain.value = 0.5; sfxGain.connect(master);
+    }
+    if(ac.state === "suspended") ac.resume();
+  }
+  function blip(freq, t, dur, type="square", vol=0.5, dest){
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(dest || sfxGain);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  function scheduleLoop(){
+    const t0 = nextLoopTime;
+    MEL.forEach((n,i)=>{ if(n) blip(F(n), t0 + i*STEP, STEP*0.85, "square", 0.4, bgmGain); });
+    BAS.forEach((n,i)=>{ if(n) blip(F(n), t0 + i*STEP*2, STEP*1.5, "triangle", 0.55, bgmGain); });
+    nextLoopTime = t0 + MEL.length * STEP;
+    seqTimer = setTimeout(scheduleLoop, (nextLoopTime - ac.currentTime - 0.3) * 1000);
+  }
+  function startBgm(){
+    if(!enabled) return;
+    ensure();
+    if(seqTimer) return;
+    bgmGain.gain.setValueAtTime(0.35, ac.currentTime);
+    nextLoopTime = ac.currentTime + 0.05;
+    scheduleLoop();
+  }
+  function stopBgm(){
+    clearTimeout(seqTimer); seqTimer = null;
+    if(bgmGain) bgmGain.gain.setValueAtTime(0, ac.currentTime); /* 予約済みの音も消す */
+  }
+  function play(name){
+    if(!enabled) return;
+    ensure();
+    const t = ac.currentTime;
+    if(name === "tap"){ blip(880, t, 0.06); blip(1318, t+0.07, 0.09); }
+    else if(name === "evolve"){ [72,76,79,84,88].forEach((m,i)=>blip(F(m), t+i*0.09, 0.14, "square", 0.55)); }
+    else if(name === "rare"){ [88,91,96,91,96].forEach((m,i)=>blip(F(m), t+i*0.07, 0.1, "square", 0.45)); }
+    else if(name === "dere"){ [84,88,91,96].forEach((m,i)=>blip(F(m), t+i*0.14, 0.3, "triangle", 0.5)); }
+    else if(name === "over"){ [76,74,72,69,64].forEach((m,i)=>blip(F(m), t+i*0.18, 0.25, "triangle", 0.55)); }
+  }
+  function setEnabled(v){ enabled = v; }
+  function toggle(){
+    enabled = !enabled;
+    if(enabled){ startBgm(); play("tap"); }
+    else stopBgm();
+    return enabled;
+  }
+  return { play, startBgm, stopBgm, toggle, setEnabled, get enabled(){ return enabled; } };
+})();
+function updateSoundBtn(){
+  document.getElementById("b-sound").textContent = Sound.enabled ? "🔊 おと" : "🔇 おと";
 }
 
 /* ================= ゲームロジック ================= */
@@ -529,11 +634,24 @@ function minuteLoop(){
   }
 }
 
+/* 1日に行動で稼げる忠誠度の上限。
+   めっちゃ触る人で3日、平均5日で最終形態（1000XP）に届く設計 */
+const DAILY_XP_CAP = 330;
 function gainXP(n){
+  const today = todayStr();
+  if(state.xpDay !== today){ state.xpDay = today; state.xpToday = 0; }
+  const add = Math.min(n, Math.max(0, DAILY_XP_CAP - state.xpToday));
   const before = stageIndex();
-  state.xp += n;
+  state.xp += add;
+  state.xpToday += add;
+  if(add < n && state.capDay !== today){
+    /* その日はじめて上限に達したときだけ知らせる */
+    state.capDay = today;
+    setTimeout(()=>say("むっ！？今日の忠誠はもう受け取り切っただじょ！続きはまた明日な、{NAME}！", 9000), 600);
+  }
   const after = stageIndex();
   if(after > before){
+    Sound.play("evolve");
     say(LINES.evolve[after], 9000);
     return true;
   }
@@ -544,10 +662,11 @@ function gainXP(n){
 let dereFx = 0;
 function checkDere(){
   if(state.dereSeen || !state.alive) return;
-  if(stageIndex() < 2) return;
+  if(stageIndex() < 3) return; /* 見習い罵尻ロマ子様以上でのみ発生 */
   if(state.hunger>=90 && state.mood>=90 && state.clean>=90){
     state.dereSeen = true;
     dereFx = Date.now() + 14000;
+    Sound.play("dere");
     const newly = collectDex("s01");
     say("…おい、{NAME}。", 4500);
     setTimeout(()=>say("ブタ共がいるから…ロマ子様、ここまで来れたんだじょ。", 5500), 4600);
@@ -595,11 +714,17 @@ function setCooldown(id, btn, ms=8000){
 
 function doAction(id, btn){
   if(!state.alive || onCooldown(id)) return;
+  Sound.play("tap");
   const egg = stageIndex()===0;
 
   if(egg){
     const evolved = gainXP(3);
-    if(!evolved) say(pick(LINES.eggWarm));
+    if(!evolved){
+      if(id==="feed")        say(pick(LINES.eggWarm));
+      else if(id==="praise") say(pick(LINES.eggTalk));
+      else if(id==="clean")  say(pick(LINES.eggLullaby));
+      else                   say(pick(LINES.eggPray));
+    }
   }
   else if(id==="feed"){
     if(state.hunger > 95){
@@ -631,6 +756,7 @@ function doAction(id, btn){
     const isNew = collectDex(d.id);
     state.lastInsult = d.id;
     state.mood = clamp(state.mood + 10);
+    if(d.r>=3) Sound.play("rare");
     const evolved = gainXP(d.r>=3 ? 12 : 6);
     if(!evolved){
       let suffix = "";
@@ -658,8 +784,10 @@ function buildShareText(){
   if(d.r===5) flair = "◆罵倒の日限定◆\n";
   else if(d.r===3) flair = "★★★レア罵倒★★★\n";
   else if(d.r===9) flair = "♥シークレット♥\n";
+  const gameUrl = location.href.split(/[?#]/)[0];
   return "👑本日の賜り罵倒👑\n" + flair + "「" + fillName(d.t) + "」\n\n"
     + invites[Math.floor(Math.random()*invites.length)]
+    + "\n\n" + gameUrl
     + "\n\n#罵尻ロマ子様 #きんたまごっち";
 }
 function wrapJP(g, text, maxW){
@@ -747,6 +875,9 @@ async function shareToX(){
 }
 
 /* ================= 図鑑UI ================= */
+function dexGotCount(){
+  return DEX.filter(d=>state.dex.includes(d.id)).length;
+}
 function openDex(){
   const list = document.getElementById("dexList");
   list.innerHTML = "";
@@ -768,7 +899,7 @@ function openDex(){
     list.appendChild(div);
   }
   document.getElementById("dexCount").textContent =
-    "収集状況：全" + DEX.length + "種中 " + got + "種";
+    "収集状況：" + got + " / " + DEX.length;
   document.getElementById("dexOvl").classList.add("show");
 }
 
@@ -799,13 +930,19 @@ function refreshUI(){
     (ev ? "🎉罵倒の日🎉 " : "") + "下僕：" + (state.name || "？？？") +
     "（" + rankName() + "）／連続" + (state.streak||0) + "日";
   const egg = si===0;
-  document.getElementById("b-feed").textContent   = egg? "🔥 温める" : "🍰 エサを献上";
-  document.getElementById("b-praise").textContent = egg? "🔥 温める" : "👏 褒め称える";
-  document.getElementById("b-clean").textContent  = egg? "🔥 温める" : "🧹 お掃除";
-  document.getElementById("b-insult").textContent = egg? "🔥 温める" : "⚡ 罵倒を賜る";
+  document.getElementById("b-feed").textContent   = egg? "🔥 温める"     : "🍰 エサを献上";
+  document.getElementById("b-praise").textContent = egg? "💬 話しかける" : "👏 褒め称える";
+  document.getElementById("b-clean").textContent  = egg? "🎵 子守唄"     : "🧹 お掃除";
+  document.getElementById("b-insult").textContent = egg? "🙏 無事を祈る" : "⚡ 罵倒を賜る";
+  document.getElementById("b-dex").textContent = "📖 罵倒図鑑 (" + dexGotCount() + "/" + DEX.length + ")";
 }
 function showGameOver(){
-  document.getElementById("over").classList.add("show");
+  const ov = document.getElementById("over");
+  if(!ov.classList.contains("show")){
+    Sound.play("over");
+    Sound.stopBgm();
+  }
+  ov.classList.add("show");
 }
 
 /* ================= アイドルセリフ ================= */
@@ -850,7 +987,7 @@ function drawEgg(){
   P(10,11,12,9,COL.Eg); P(11,20,10,1,COL.Eg); P(12,21,8,1,COL.Eg);
   drawPinX(12,13,COL.R); drawPinX(17,13,COL.R);
   P(13,18,1,1,COL.EL); P(18,18,1,1,COL.ER);
-  if(state.xp >= 6){
+  if(state.xp >= 16){
     P(15,10,1,2,COL.K); P(16,12,1,1,COL.K); P(15,13,1,1,COL.K);
   }
 }
@@ -909,6 +1046,32 @@ function drawChibi(mood, blink){
   /* 頭とアホ毛 */
   P(9,7,14,6,COL.H); P(8,9,2,4,COL.H); P(22,9,2,4,COL.H);
   P(16,5,1,1,COL.H); P(17,4,1,1,COL.H); P(16,3,1,1,COL.H);
+  /* 顔 */
+  P(10,13,12,7,COL.S);
+  P(10,13,2,1,COL.H); P(13,13,2,1,COL.H); P(16,13,2,1,COL.H); P(19,13,3,1,COL.H);
+  drawFace(10,13,mood,blink);
+  drawPins();
+  /* ワンピース（青＋チェック柄／8月10日は祭り紅） */
+  const em = isEventDay();
+  const D1 = em ? COL.R : COL.Db;
+  const D2 = em ? COL.G : COL.Pl;
+  P(13,20,6,1,COL.W);
+  P(12,21,8,2,D1); P(11,23,10,2,D1); P(10,25,12,1,D1);
+  P(16,23,5,3,D2); P(17,24,1,1,COL.W); P(19,23,1,1,COL.W);
+  P(15,21,2,2,COL.Hd);
+  /* 靴下と靴 */
+  P(13,26,2,1,COL.W); P(17,26,2,1,COL.W);
+  P(13,27,2,1,COL.SH); P(17,27,2,1,COL.SH);
+}
+
+function drawTween(mood, blink){
+  /* 少女期：幼少期の体型に小さな冠が芽生える */
+  P(7,10,3,12,COL.H); P(22,10,3,12,COL.H);
+  P(7,21,3,2,COL.Hd); P(22,21,3,2,COL.Hd);
+  /* 頭とアホ毛 */
+  P(9,7,14,6,COL.H); P(8,9,2,4,COL.H); P(22,9,2,4,COL.H);
+  P(16,5,1,1,COL.H); P(17,4,1,1,COL.H); P(16,3,1,1,COL.H);
+  drawCrown(16,2,false);
   /* 顔 */
   P(10,13,12,7,COL.S);
   P(10,13,2,1,COL.H); P(13,13,2,1,COL.H); P(16,13,2,1,COL.H); P(19,13,3,1,COL.H);
@@ -999,7 +1162,10 @@ function render(){
   const si = stageIndex();
   if(si===0)      drawEgg();
   else if(si===1) drawChibi(mood, blink);
-  else            drawQueen(mood, blink, si===3, si===3, frame);
+  else if(si===2) drawTween(mood, blink);
+  else if(si===3) drawQueen(mood, blink, false, false, frame);
+  else if(si===4) drawQueen(mood, blink, true, false, frame);
+  else            drawQueen(mood, blink, true, true, frame);
   ctx.restore();
   if(isEventDay()) drawConfetti(frame);
   if(dereFx > Date.now()) drawHearts(frame);
@@ -1024,6 +1190,12 @@ async function init(){
     state.lastVisit = today;
   }
   refreshUI();
+  /* サウンド設定の復元（自動再生制限があるので、最初のタップでBGM開始） */
+  if(state.sound){
+    Sound.setEnabled(true);
+    updateSoundBtn();
+    document.addEventListener("pointerdown", ()=>{ if(state.alive) Sound.startBgm(); }, { once:true });
+  }
   if(!state.name){
     /* 初めての人にはまずゲーム説明→名前入力の順で案内する */
     document.getElementById("welcomeOvl").classList.add("show");
@@ -1054,6 +1226,15 @@ document.getElementById("b-insult").addEventListener("click", e=>doAction("insul
 document.getElementById("b-dex").addEventListener("click", openDex);
 document.getElementById("b-dexClose").addEventListener("click", ()=>document.getElementById("dexOvl").classList.remove("show"));
 document.getElementById("b-share").addEventListener("click", shareToX);
+document.getElementById("b-sound").addEventListener("click", async ()=>{
+  const on = Sound.toggle();
+  if(on && !state.alive) Sound.stopBgm(); /* 女王不在中はBGMなし（復帰時に再開） */
+  state.sound = on;
+  updateSoundBtn();
+  say(on ? "（♪ サウンド：ONだじょ！ピコピコ鳴らしてやんよ！）"
+         : "（サウンド：OFFだじょ。静かにしてほしいのか？）", 5000);
+  await saveState();
+});
 document.getElementById("b-shareClose").addEventListener("click", ()=>document.getElementById("shareOvl").classList.remove("show"));
 /* 隠しコマンド：👑を5回タップで罵倒の日プレビュー */
 let crestTaps = 0, crestTimer = null;
