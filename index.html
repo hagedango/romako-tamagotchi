@@ -505,7 +505,11 @@ const LINES = {
     "……ふふ、ヤミ子の目覚めだじょ。罵倒に闇の深みが出たかんな…！！",
     "最終形態・罵尻ロマ子様、降臨…！！ひれ伏せや{NAME}！！おめぇも最高のブタだじょ！！"
   ],
-  welcome: ["遅ぇぞ{NAME}！どこほっつき歩いてただじょ！"]
+  welcome: ["遅ぇぞ{NAME}！どこほっつき歩いてただじょ！"],
+  comeback: [
+    "お…おせぇよ{NAME}…！死ぬかと思っただじょ…！早く世話しろや！！",
+    "よ…ようやく帰ってきたか{NAME}…！腹減って倒れる寸前だじょ…！"
+  ]
 };
 const pick = a => a[Math.floor(Math.random()*a.length)];
 
@@ -606,19 +610,31 @@ function rankName(){
   for(const k of RANKS){ if(state.xp >= k.xp) r = k.name; }
   return r;
 }
+/* 減衰速度（1時間あたり）。満タンから空まで：満腹12.5h／機嫌16.7h／美しさ25h */
+const DECAY = { hunger: 8, mood: 6, clean: 4, healthDrop: 3, healthRegen: 6 };
 function applyDecay(minutes){
   if(minutes <= 0 || !state.alive) return;
-  const m = Math.min(minutes, 720);
-  state.hunger = clamp(state.hunger - 1.2*m);
-  state.mood   = clamp(state.mood   - 0.8*m);
-  state.clean  = clamp(state.clean  - 0.5*m);
-  let empty = 0;
-  if(state.hunger<=0) empty++;
-  if(state.mood<=0)   empty++;
-  if(state.clean<=0)  empty++;
-  if(empty>0){ state.health = clamp(state.health - empty*1.2*m); }
-  else{ state.health = clamp(state.health + 0.5*m); }
-  if(state.health<=0){ state.alive = false; }
+  const longGap = minutes > 30;       /* 画面を見ていない放置（タブ閉じ・バックグラウンド） */
+  let rest = Math.min(minutes, 2880); /* 反映は最大2日分まで */
+  while(rest > 0){
+    /* 5分刻みで順に再現：ゲージが空になった後の時間だけ体力が減る */
+    const m = Math.min(rest, 5);
+    rest -= m;
+    state.hunger = clamp(state.hunger - DECAY.hunger/60*m);
+    state.mood   = clamp(state.mood   - DECAY.mood  /60*m);
+    state.clean  = clamp(state.clean  - DECAY.clean /60*m);
+    let empty = 0;
+    if(state.hunger<=0) empty++;
+    if(state.mood<=0)   empty++;
+    if(state.clean<=0)  empty++;
+    if(empty>0){ state.health = clamp(state.health - empty*DECAY.healthDrop/60*m); }
+    else{ state.health = clamp(state.health + DECAY.healthRegen/60*m); }
+    if(state.health<=0) break;
+  }
+  if(state.health<=0){
+    if(longGap) state.health = 5; /* 放置では死なない。瀕死で帰りを待っていてくれる */
+    else state.alive = false;
+  }
 }
 
 let lastMinuteTick = Date.now();
@@ -1202,6 +1218,7 @@ async function init(){
   }
   if(!state.alive){ showGameOver(); }
   else if(stageIndex()===0){ say(pick(LINES.eggIdle)); }
+  else if(state.health < 40){ say(pick(LINES.comeback), 9000); } /* 長期放置明けは瀕死のお出迎え */
   else if(newDay){ dailyGreeting(); }
   else{ say(pick(LINES.welcome)); }
   await saveState();
