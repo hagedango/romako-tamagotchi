@@ -30,7 +30,29 @@ body{
 }
 .subtitle{
   text-align:center;font-size:12px;letter-spacing:.28em;
-  color:#b8a4d4;margin-bottom:18px;
+  color:#b8a4d4;margin-bottom:12px;
+}
+/* ===== 罵倒の日バナー ===== */
+.event-banner{
+  margin-bottom:14px;
+  font-size:12px;font-weight:600;letter-spacing:.08em;
+  color:var(--gold);
+  border:1.5px solid var(--gold-d);
+  border-radius:999px;
+  padding:6px 16px;
+  background:rgba(232,184,48,.08);
+  text-align:center;
+  max-width:94vw;
+}
+.event-banner.today{
+  color:#1a0e24;
+  background:linear-gradient(180deg,#f3cf60,#c99a1e);
+  border-color:#f3cf60;
+  animation:banner-glow 1.2s infinite;
+}
+@keyframes banner-glow{50%{box-shadow:0 0 18px rgba(232,184,48,.75)}}
+@media (prefers-reduced-motion: reduce){
+  .event-banner.today{animation:none}
 }
 /* ===== 本体（デバイス） ===== */
 .device{
@@ -201,6 +223,7 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 
 <h1 class="title">きんたまごっち</h1>
 <p class="subtitle">〜 罵尻ロマ子様ご機嫌うかがい機 〜</p>
+<div class="event-banner" id="eventBanner">◆ 8月10日は罵倒の日 ◆</div>
 
 <div class="device">
   <div class="crest">👑</div>
@@ -394,6 +417,7 @@ async function resetGame(){
   document.getElementById("over").classList.remove("show");
   Sound.startBgm();           // ゲームオーバーで止めたBGMを再開
   say("へーんだ！…しょうがねぇなぁ、今回だけだじょ。卵からやり直しな！", 8000);
+  unlockSecret("s06", 8500); /* お別れからの復活 */
   await saveState();
   refreshUI();
 }
@@ -417,9 +441,15 @@ const DEX = [
   { id:"u04", r:2, t:"傷つける一歩手前で止めてやってんの、分かってんだろ{NAME}？" },
   { id:"r01", r:3, t:"立派なマゾ豚にして出荷させてやんぞ！！" },
   { id:"r02", r:3, t:"ホントは嬉しいんだじょ…でも言わせんな{NAME}！" },
-  { id:"e01", r:5, t:"8月10日は罵倒の日！一年で一番ありがたい日だと心得ろ、ブタ共！！" },
-  { id:"e02", r:5, t:"罵倒の日スペシャル！{NAME}、テメェは最高のブタだよ！！…んむ！！言ってやったかんな！！" },
-  { id:"s01", r:9, t:"ブタ共がいるから…ロマ子様、ここまで来れたんだじょ。" }
+  { id:"e01", r:5, t:"8月10日は罵倒の日！一年で一番ありがたい日だと心得ろ、ブタ共！！", hint:"8月10日・罵倒の日に何かが…" },
+  { id:"e02", r:5, t:"罵倒の日スペシャル！{NAME}、テメェは最高のブタだよ！！…んむ！！言ってやったかんな！！", hint:"8月10日・罵倒の日に何かが…" },
+  { id:"s01", r:9, t:"ブタ共がいるから…ロマ子様、ここまで来れたんだじょ。", hint:"ある条件で女王の本音が…" },
+  { id:"s02", r:9, t:"7日連続…テメェ、もうロマ子様なしじゃ生きらんねぇ体になったな！？んむ！！", hint:"毎日欠かさず通い続けると…" },
+  { id:"s03", r:9, t:"最終形態のロマ子様を拝めるのは選ばれしブタだけだじょ！！誇れや{NAME}！！", hint:"最終形態まで育て上げると…" },
+  { id:"s04", r:9, t:"罵倒を集めまくりやがって…このド変態コレクターが！！…ちょっとだけ褒めてやんよ。", hint:"通常の罵倒を全部集めると…" },
+  { id:"s05", r:9, t:"こんな夜中に罵倒されに来たのか…？しょうがねぇ夜更かしブタだじょ…早く寝ろよ？", hint:"真夜中に会いに来ると…" },
+  { id:"s06", r:9, t:"に、二度と離れんじゃねぇぞ{NAME}…！心配なんかしてねぇけどな！！んむ！！", hint:"一度お別れして、戻ってくると…" },
+  { id:"s07", r:9, t:"10日も仕えるとは…認めてやんよ。{NAME}はロマ子様の一番のブタだじょ！！", hint:"長く仕え続けると…" }
 ];
 const RARITY_LABEL = { 1:"★ コモン", 2:"★★ ツンデレ", 3:"★★★ レア", 5:"◆ 8/10限定", 9:"♥ シークレット" };
 
@@ -431,6 +461,13 @@ function isEventDay(){
   if(previewEvent) return true;
   const d = new Date();
   return d.getMonth()===7 && d.getDate()===10; /* 8月10日＝罵倒の日 */
+}
+function daysToBatouDay(){
+  const now = new Date();
+  const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let target = new Date(now.getFullYear(), 7, 10);
+  if(today0 > target) target = new Date(now.getFullYear()+1, 7, 10);
+  return Math.round((target - today0)/86400000);
 }
 function rollInsult(){
   if(isEventDay() && Math.random() < 0.35){
@@ -447,6 +484,23 @@ function rollInsult(){
 function collectDex(id){
   if(!state.dex.includes(id)){ state.dex.push(id); return true; }
   return false;
+}
+/* シークレット罵倒の解放。図鑑には即記録し、セリフは他の演出の後に出す */
+function unlockSecret(id, delay=800){
+  const d = DEX.find(x=>x.id===id);
+  if(!d || state.dex.includes(d.id)) return false;
+  state.dex.push(d.id);
+  setTimeout(()=>{
+    Sound.play("rare");
+    say(fillName(d.t) + "\n（♥ シークレット罵倒を発見！図鑑に記録された！）", 10000);
+    saveState(); refreshUI();
+  }, delay);
+  return true;
+}
+/* 通常罵倒（コモン・ツンデレ・レア）を全部集めたらコレクターの称号 */
+function checkDexComplete(delay=9800){
+  const normals = DEX.filter(d=>d.r<=3);
+  if(normals.every(d=>state.dex.includes(d.id))) unlockSecret("s04", delay);
 }
 
 /* ================= セリフ（正典準拠） ================= */
@@ -669,6 +723,7 @@ function gainXP(n){
   if(after > before){
     Sound.play("evolve");
     say(LINES.evolve[after], 9000);
+    if(after === STAGES.length-1) unlockSecret("s03", 9500); /* 最終形態到達 */
     return true;
   }
   return false;
@@ -716,7 +771,9 @@ function dailyGreeting(){
     state.lastInsult = d.id;
     say(fillName(d.t) + "\n（本日の日替わり罵倒！）", 9000);
     saveState(); refreshUI();
+    checkDexComplete(9800);
   }, 6800);
+  if(state.streak===7) unlockSecret("s02", 16500); /* 連続出勤7日 */
 }
 
 /* ================= アクション ================= */
@@ -781,6 +838,7 @@ function doAction(id, btn){
       else if(isNew) suffix = "\n（図鑑に記録された！）";
       say(fillName(d.t) + suffix, 9000);
     }
+    if(isNew) checkDexComplete(9800);
   }
   setCooldown(id, btn);
   checkDere();
@@ -791,20 +849,18 @@ function doAction(id, btn){
 /* ================= 𝕏シェア（画像カード付き） ================= */
 function buildShareText(){
   const d = DEX.find(x=>x.id===state.lastInsult);
-  const invites = [
-    "罵倒の女王を育てて罵倒される謎ゲー🐷 あなたも出荷されてみない？",
-    "毎日罵倒されに通うブタになっただじょ🐷 次はおめぇの番だ！",
-    "傷つく一歩手前で止めてくれる、優しい（？）罵倒ゲーだじょ🐷"
-  ];
   let flair = "";
   if(d.r===5) flair = "◆罵倒の日限定◆\n";
   else if(d.r===3) flair = "★★★レア罵倒★★★\n";
   else if(d.r===9) flair = "♥シークレット♥\n";
   const gameUrl = location.href.split(/[?#]/)[0];
+  /* Xの上限（280単位＝全角140文字相当）に収まるよう短文構成 */
+  const cd = isEventDay()
+    ? "🎉今日は罵倒の日！！参加しろだじょ🐷"
+    : "罵倒の日(8/10)まであと" + daysToBatouDay() + "日🐷";
   return "👑本日の賜り罵倒👑\n" + flair + "「" + fillName(d.t) + "」\n\n"
-    + invites[Math.floor(Math.random()*invites.length)]
-    + "\n\n" + gameUrl
-    + "\n\n#罵尻ロマ子様 #きんたまごっち";
+    + cd + "\n" + gameUrl + "\n"
+    + "#罵尻ロマ子様 #きんたまごっち #8月10日罵倒の日";
 }
 function wrapJP(g, text, maxW){
   const lines = []; let cur = "";
@@ -907,9 +963,7 @@ function openDex(){
     r.className = "r";
     r.textContent = RARITY_LABEL[d.r];
     const t = document.createElement("div");
-    let lockText = "？？？";
-    if(d.r===9) lockText = "？？？（ある条件で女王の本音が…）";
-    if(d.r===5) lockText = "？？？（8月10日に何かが…）";
+    const lockText = d.hint ? "？？？（" + d.hint + "）" : "？？？";
     t.textContent = has ? fillName(d.t) : lockText;
     div.appendChild(r); div.appendChild(t);
     list.appendChild(div);
@@ -942,6 +996,14 @@ function refreshUI(){
   }
   const ev = isEventDay();
   document.querySelector(".crest").textContent = ev ? "🎉" : "👑";
+  const bn = document.getElementById("eventBanner");
+  if(ev){
+    bn.textContent = "🎉 本日8月10日は『罵倒の日』！！限定罵倒が降臨中だじょ！！";
+    bn.classList.add("today");
+  }else{
+    bn.textContent = "◆ 8月10日は罵倒の日 ◆ あと" + daysToBatouDay() + "日で限定罵倒が降臨！";
+    bn.classList.remove("today");
+  }
   document.getElementById("servantLine").textContent =
     (ev ? "🎉罵倒の日🎉 " : "") + "下僕：" + (state.name || "？？？") +
     "（" + rankName() + "）／連続" + (state.streak||0) + "日";
@@ -1221,6 +1283,13 @@ async function init(){
   else if(state.health < 40){ say(pick(LINES.comeback), 9000); } /* 長期放置明けは瀕死のお出迎え */
   else if(newDay){ dailyGreeting(); }
   else{ say(pick(LINES.welcome)); }
+  /* 訪問時のシークレット解放チェック（生まれてから有効） */
+  if(state.alive && stageIndex() >= 1){
+    let sDelay = 11000; /* あいさつ演出の後に流す */
+    if(new Date().getHours() < 5 && unlockSecret("s05", sDelay)) sDelay += 10500; /* 真夜中の訪問 */
+    const days = Math.floor((Date.now()-state.born)/86400000)+1;
+    if(days >= 10) unlockSecret("s07", sDelay); /* 10日仕えた */
+  }
   await saveState();
 }
 document.getElementById("b-welcomeOk").addEventListener("click", ()=>{
