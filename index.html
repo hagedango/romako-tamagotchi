@@ -101,6 +101,7 @@ body{
 canvas{
   image-rendering:pixelated;
   width:176px;height:176px;
+  cursor:pointer;
 }
 .servant-line{
   text-align:center;font-size:11px;margin-top:2px;color:#5e4a82;
@@ -214,6 +215,40 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .dex-item.secret{border-color:var(--pink)}
 .dex-item.secret .r{color:var(--pink)}
 .dex-close{margin-top:16px}
+/* ===== 地上波エンディング ===== */
+.tv-frame{
+  width:210px;margin:0 auto 6px;
+  background:#17111f;
+  border:6px solid #6b5535;border-radius:14px;
+  padding:10px 10px 8px;
+  box-shadow:0 6px 20px rgba(0,0,0,.5), inset 0 0 12px rgba(0,0,0,.8);
+}
+#tvcv{
+  width:170px;height:170px;display:block;margin:0 auto;
+  image-rendering:pixelated;border-radius:4px;
+}
+.tv-caption{
+  font-family:'DotGothic16',monospace;font-size:10px;
+  color:#ffe28a;background:#3a0d18;
+  padding:3px 6px;margin-top:8px;border-radius:3px;
+  letter-spacing:.08em;
+}
+.tv-line{
+  font-family:'DotGothic16',monospace;font-size:13px;
+  color:#f5edda;min-height:44px;line-height:1.7;
+  margin:10px 0 4px;
+}
+.credits-window{height:84px;overflow:hidden;position:relative;margin:6px 0 14px}
+.credits{
+  position:absolute;width:100%;
+  font-size:12px;line-height:2;color:#cbbadf;text-align:center;
+  animation:rollup 16s linear infinite;
+}
+@keyframes rollup{from{transform:translateY(88px)}to{transform:translateY(-100%)}}
+@media (prefers-reduced-motion: reduce){
+  .credits{animation:none;position:static}
+  .credits-window{height:auto;max-height:120px;overflow-y:auto}
+}
 @media (prefers-reduced-motion: reduce){
   .bar-row.low .bar > i{animation:none}
 }
@@ -236,7 +271,7 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
       <div class="bar-row" id="row-hunger"><span>満腹度</span><div class="bar"><i id="bar-hunger"></i></div><span id="val-hunger"></span></div>
       <div class="bar-row" id="row-mood"><span>ご機嫌</span><div class="bar"><i id="bar-mood"></i></div><span id="val-mood"></span></div>
       <div class="bar-row" id="row-clean"><span>お美しさ</span><div class="bar"><i id="bar-clean"></i></div><span id="val-clean"></span></div>
-      <div class="bar-row" id="row-xp"><span>忠誠度</span><div class="bar"><i id="bar-xp"></i></div><span id="val-xp"></span></div>
+      <div class="bar-row" id="row-xp"><span id="xpLabel">忠誠度</span><div class="bar"><i id="bar-xp"></i></div><span id="val-xp"></span></div>
     </div>
   </div>
 
@@ -317,6 +352,21 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   </div>
 </div>
 
+<!-- 地上波エンディング -->
+<div class="ovl" id="tvOvl">
+  <div class="ovl-box">
+    <h2>📺 祝・地上波出演！！</h2>
+    <div class="tv-frame">
+      <canvas id="tvcv" width="128" height="128"></canvas>
+      <div class="tv-caption">🔴生放送　罵倒の女王・罵尻ロマ子様</div>
+    </div>
+    <p class="tv-line" id="tvLine"></p>
+    <div class="credits-window"><div class="credits" id="credits"></div></div>
+    <a class="gold" id="tvShare" href="#" target="_blank" rel="noopener">𝕏で自慢する</a>
+    <button class="gold" id="b-tvClose" style="margin-top:10px">これからも仕える</button>
+  </div>
+</div>
+
 <!-- ゲームオーバー -->
 <div class="ovl" id="over">
   <div class="ovl-box">
@@ -335,7 +385,6 @@ const STAGES = [
   { xp: 40,   name: "ロマ子様（幼少期）" },
   { xp: 250,  name: "ロマ子様（少女期）" },
   { xp: 450,  name: "見習い罵尻ロマ子様" },
-  { xp: 700,  name: "罵尻ロマ子様（ヤミ子）" },
   { xp: 1000, name: "罵倒の女王・罵尻ロマ子様（最終）" }
 ];
 const RANKS = [
@@ -372,7 +421,7 @@ function freshState(){
     xp: 0, born: Date.now(), last: Date.now(), alive: true,
     name: null, dex: [], dereSeen: false, lastInsult: null,
     streak: 0, lastVisit: null, sound: false,
-    xpToday: 0, xpDay: null, capDay: null
+    xpToday: 0, xpDay: null, capDay: null, tvDone: false
   };
 }
 async function loadState(){
@@ -408,12 +457,15 @@ async function resetGame(){
   const keepDex = state ? state.dex : [];
   const keepDere = state ? state.dereSeen : false;
   const keepSound = state ? state.sound : false;
+  const keepTv = state ? state.tvDone : false;
   try{ if(storageOk) localStorage.removeItem(KEY); }catch(e){}
   state = freshState();
   state.name = keepName;      // 名前と図鑑は引き継ぎ（コレクションは財産！）
   state.dex = keepDex;
   state.dereSeen = keepDere;
   state.sound = keepSound;
+  state.tvDone = keepTv;      // 地上波出演の実績も財産
+
   document.getElementById("over").classList.remove("show");
   Sound.startBgm();           // ゲームオーバーで止めたBGMを再開
   say("へーんだ！…しょうがねぇなぁ、今回だけだじょ。卵からやり直しな！", 8000);
@@ -508,64 +560,160 @@ const LINES = {
   feed: [
     "ふん、まぁまぁのエサだじょ。食ってやんよ！",
     "タダ飯じゃねぇぞ、感謝しろだじょ！",
-    "んむ！！甘味は別腹なのだわわ！"
+    "んむ！！甘味は別腹なのだわわ！",
+    "ケーキは正義…！ブタのくせに分かってんじゃねぇか！",
+    "う、うめぇ…！べ、別に喜んでねぇかんな！",
+    "女王のお口に合うか試してやんよ…んむ！！合格だじょ！"
   ],
-  overfeed: ["ロマ子様を太らせてどうすんだ！余ったらテメェが食え、{NAME}！"],
+  overfeed: [
+    "ロマ子様を太らせてどうすんだ！余ったらテメェが食え、{NAME}！",
+    "食いすぎだっつってんだろ！女王の体型管理もブタの仕事だじょ！"
+  ],
   praise: [
     "当然だじょ！ロマ子様は罵倒の女王なのだわわ！",
     "へーんだ！褒めたって何も出ねぇぞ…んむ、悪くねぇけどな！",
-    "見る目だけは一流だな、{NAME}！"
+    "見る目だけは一流だな、{NAME}！",
+    "もっと言えだじょ！ロマ子様は褒められて伸びる女王なのだわわ！",
+    "ふ、ふーん…おめぇ、なかなか分かってんじゃねぇか。",
+    "当然の評価だじょ！でも聞いてやるからもう一回言え！"
   ],
-  praiseFail: ["見え透いたお世辞してんじゃねぇぞブタ野郎！百年早いわ！"],
+  praiseFail: [
+    "見え透いたお世辞してんじゃねぇぞブタ野郎！百年早いわ！",
+    "口先だけのブタは出荷が早まんぞ！？"
+  ],
   clean: [
     "ようやく気付いたか。ブタのくせにやるじゃねぇか！",
     "塵ひとつ残したら承知しねぇかんな！",
-    "んむ！！女王の城はこうでなくちゃな！"
+    "んむ！！女王の城はこうでなくちゃな！",
+    "ピッカピカにしろよ！女王の城なんだかんな！",
+    "掃除の腕だけは認めてやんよ、{NAME}！",
+    "んむ！！美は一日にしてならずなのだわわ！"
   ],
   idleGood: [
     "んむ！！今日もロマ子様は完璧だじょ！",
     "{NAME}、ちっとは成長したかだじょ？",
-    "地上波…いつか絶対出てやんだかんな…！"
+    "地上波…いつか絶対出てやんだかんな…！",
+    "へーんだ！ロマ子様は今日も無敵だじょ！",
+    "罵倒の練習してたとこだじょ。聞いてくか？",
+    "地上波に出たら最初に何て罵倒すっかなぁ…のだわわ…",
+    "{NAME}、サボってねぇでちゃんと励めよ！"
   ],
-  hungry: ["腹減っただじょ！！女王を飢えさせる気か{NAME}！"],
-  bored:  ["退屈なのだわわ！！褒めるか罵倒されに来いや！"],
-  dirty:  ["部屋が汚ねぇぞ！ブタ小屋じゃねぇんだかんな！"],
-  crisis: ["…へーんだ。もう知らねぇ…このままなら出てってやるかんな…"],
+  hungry: [
+    "腹減っただじょ！！女王を飢えさせる気か{NAME}！",
+    "エサまだかだじょ！！女王を待たせんな！",
+    "腹の音が罵倒より大きくなっちまうだろ！！早くしろ{NAME}！"
+  ],
+  bored:  [
+    "退屈なのだわわ！！褒めるか罵倒されに来いや！",
+    "かまえよ{NAME}！女王が退屈で干からびたらどうすんだ！",
+    "ヒマだじょ〜！！罵倒の勘が鈍っちまう！！"
+  ],
+  dirty:  [
+    "部屋が汚ねぇぞ！ブタ小屋じゃねぇんだかんな！",
+    "汚ねぇ城に女王を住まわせる気か！？掃除しろだじょ！",
+    "ホコリまみれじゃ罵倒にキレが出ねぇんだよ！！"
+  ],
+  crisis: [
+    "…へーんだ。もう知らねぇ…このままなら出てってやるかんな…",
+    "……もういい。ブタに期待したロマ子様がバカだっただじょ…"
+  ],
   eggIdle: [
     "……（卵の中から偉そうな気配がする）",
-    "コツ、コツ……（中から「出せ」と聞こえる気がする）"
+    "コツ、コツ……（中から「出せ」と聞こえる気がする）",
+    "……（卵がもぞもぞ動いている）",
+    "（早く温めろ、という圧を感じる…）"
   ],
   eggWarm: [
     "んむ…！悪くねぇ温もりだじょ…",
-    "もうちょっとなのだわわ…！"
+    "もうちょっとなのだわわ…！",
+    "ぬくぬくだじょ…もっとだじょ…"
   ],
   eggTalk: [
     "……（卵がかすかに震えた気がする）",
-    "んっ…！聞こえてるだじょ、たぶん…"
+    "んっ…！聞こえてるだじょ、たぶん…",
+    "……（返事の代わりに卵がコロンと揺れた）"
   ],
   eggLullaby: [
     "♪～（子守唄で卵がまどろんでいる…？）",
-    "んむ…歌、悪くねぇだじょ…（すやすや）"
+    "んむ…歌、悪くねぇだじょ…（すやすや）",
+    "♪～……（機嫌の良さそうな寝息が聞こえる）"
   ],
   eggPray: [
     "……（卵の温度が心なしか上がった気がする）",
-    "無事に生まれてこいだじょ…（ってばよ）"
+    "無事に生まれてこいだじょ…（ってばよ）",
+    "……（祈りが届いたのか、卵が金色に光った気がする）"
   ],
   evolve: [
     "",
     "おいブタ！待たせたな！罵倒の女王・ロマ子様の誕生だじょ！！",
     "んむ…！ちったァ大きくなったじょ！まだまだこれからだかんな、{NAME}！",
     "見ろブタ共！これが罵倒の女王の姿だじょ！！",
-    "……ふふ、ヤミ子の目覚めだじょ。罵倒に闇の深みが出たかんな…！！",
     "最終形態・罵尻ロマ子様、降臨…！！ひれ伏せや{NAME}！！おめぇも最高のブタだじょ！！"
   ],
-  welcome: ["遅ぇぞ{NAME}！どこほっつき歩いてただじょ！"],
+  welcomeMorning: [
+    "早起きとは見どころあるブタだじょ！朝の罵倒はよく効くぞ！",
+    "おはようだじょ{NAME}！朝メシ前に罵倒されてけ！",
+    "朝から会いに来るとは…見上げた忠誠心なのだわわ！"
+  ],
+  welcomeDay: [
+    "遅ぇぞ{NAME}！どこほっつき歩いてただじょ！",
+    "昼間っから来やがって…ヒマなのか？んむ、いい心がけだじょ！",
+    "よく来たな{NAME}！ちょうど罵倒したい気分だっただじょ！"
+  ],
+  welcomeEvening: [
+    "今日も一日ようやったな{NAME}！ご褒美に罵倒してやんよ！",
+    "晩メシは食ったか？ロマ子様のエサも忘れんなよ！",
+    "夜は罵倒が冴える時間だじょ…覚悟して来たんだろうな？"
+  ],
+  welcomeNight: [
+    "こんな時間まで起きてんじゃねぇ！…ま、会いに来たのは褒めてやる。",
+    "夜更かしブタめ…罵倒したらさっさと寝ろだじょ！",
+    "真夜中の罵倒は効くぞ〜…って、おめぇ明日は大丈夫なのか？"
+  ],
   comeback: [
     "お…おせぇよ{NAME}…！死ぬかと思っただじょ…！早く世話しろや！！",
-    "よ…ようやく帰ってきたか{NAME}…！腹減って倒れる寸前だじょ…！"
+    "よ…ようやく帰ってきたか{NAME}…！腹減って倒れる寸前だじょ…！",
+    "ぐ…{NAME}…遅ぇ…！元気になったら説教だかんな…！"
+  ],
+  touchTsun: [
+    "おい！気安く触んじゃねぇ！",
+    "な、撫でていいとは言ってねぇだじょ！",
+    "……ふん、今日だけ特別だかんな。"
+  ],
+  touchHappy: [
+    "んむ！！くすぐってぇだじょ！",
+    "…悪くねぇ手つきだな、{NAME}。",
+    "しょうがねぇなぁ…特別に触らせてやんよ！"
+  ],
+  touchNeedy: [
+    "触ってる場合か！世話しろや！！",
+    "撫でてごまかすな！！ちゃんと面倒みろだじょ！"
+  ],
+  touchRage: [
+    "しっつけぇんだよ！！ブタの分際で！！",
+    "べたべた触んな！！出荷すんぞ！！"
+  ],
+  eggTouch: [
+    "コンコン……（中から蹴り返された気がする）",
+    "……（卵がプルプル震えている）",
+    "（つつくな、と聞こえた気がする）"
+  ],
+  idleTv: [
+    "地上波、出ちまったなぁ…次は冠番組だじょ！",
+    "全国のブタ共からファンレターが来てんぞ！んむ！！",
+    "次はゴールデンタイムで罵倒すんだかんな！",
+    "{NAME}、次の目標は紅白だじょ！ついてこいや！"
   ]
 };
 const pick = a => a[Math.floor(Math.random()*a.length)];
+/* 開いた時間帯であいさつを変える */
+function timeWelcome(){
+  const h = new Date().getHours();
+  if(h >= 5 && h < 10)  return pick(LINES.welcomeMorning);
+  if(h >= 10 && h < 18) return pick(LINES.welcomeDay);
+  if(h >= 18 && h < 23) return pick(LINES.welcomeEvening);
+  return pick(LINES.welcomeNight);
+}
 
 let bubbleTimer = null;
 function say(text, hold=6000){
@@ -747,7 +895,70 @@ function checkDere(){
     }, 10300);
     state.xp += 20;
     saveState();
+    checkTvDebut(15000); /* デレの後に地上波が決まることも */
   }
+}
+
+/* ================= エンディング：地上波出演 ================= */
+const TV_XP = 1500; /* 最終形態(1000)からさらに忠誠を積むと夢が叶う */
+let tvLineTimer = null;
+function tvShareText(){
+  const gameUrl = location.href.split(/[?#]/)[0];
+  return "📺祝・地上波出演📺\n罵倒の女王・罵尻ロマ子様、ついに全国デビューだじょ！！\nマネージャーは私です🐷\n" + gameUrl
+    + "\n#罵尻ロマ子様 #きんたまごっち #8月10日罵倒の日";
+}
+function buildTvCredits(){
+  const days = Math.floor((Date.now()-state.born)/86400000)+1;
+  document.getElementById("credits").innerHTML = "";
+  const lines = [
+    "📺 罵倒の女王 全国デビュー特番 📺",
+    "出演：罵尻ロマ子様",
+    "マネージャー：" + (state.name||"名無しのブタ") + "（" + rankName() + "）",
+    "育成日数：" + days + "日",
+    "賜った罵倒：" + dexGotCount() + "／" + DEX.length + "種",
+    "協力：全国のブタ共",
+    "SPECIAL THANKS：あなた",
+    "",
+    "〜 罵倒はまだまだ続くだじょ！！ 〜"
+  ];
+  for(const ln of lines){
+    const div = document.createElement("div");
+    div.textContent = ln;
+    document.getElementById("credits").appendChild(div);
+  }
+}
+function showTvEnding(first){
+  const tvScript = [
+    "「つ、ついに来ただじょ…全国放送だじょ…！」",
+    "「全国のブタ共！！ロマ子様の罵倒、しかと聞けや！！」",
+    "「……{NAME}。ここまで来れたのは、おめぇのおかげだじょ。」",
+    "「あ、ありがとな！！…んむ！！一回しか言わねぇかんな！！」"
+  ];
+  buildTvCredits();
+  document.getElementById("tvShare").href =
+    "https://x.com/intent/post?text=" + encodeURIComponent(tvShareText());
+  let i = 0;
+  const lineEl = document.getElementById("tvLine");
+  lineEl.textContent = fillName(tvScript[0]);
+  clearInterval(tvLineTimer);
+  tvLineTimer = setInterval(()=>{
+    i = (i+1) % tvScript.length;
+    lineEl.textContent = fillName(tvScript[i]);
+  }, 4200);
+  document.getElementById("tvOvl").classList.add("show");
+  Sound.play("evolve");
+  setTimeout(()=>Sound.play("dere"), 700);
+  if(first){
+    state.tvDone = true;
+    saveState();
+    refreshUI();
+  }
+}
+function checkTvDebut(delay=1200){
+  if(state.tvDone || !state.alive) return;
+  if(stageIndex() !== STAGES.length-1) return;
+  if(state.xp < TV_XP) return;
+  setTimeout(()=>showTvEnding(true), delay);
 }
 
 /* ================= 連続出勤（デイリー） ================= */
@@ -774,6 +985,7 @@ function dailyGreeting(){
     checkDexComplete(9800);
   }, 6800);
   if(state.streak===7) unlockSecret("s02", 16500); /* 連続出勤7日 */
+  checkTvDebut(17000); /* 出勤ボーナスで届いた場合はあいさつの後に */
 }
 
 /* ================= アクション ================= */
@@ -842,6 +1054,7 @@ function doAction(id, btn){
   }
   setCooldown(id, btn);
   checkDere();
+  checkTvDebut(1500);
   saveState();
   refreshUI();
 }
@@ -981,17 +1194,26 @@ function setBar(name, val, low=20){
 }
 function refreshUI(){
   const si = stageIndex();
-  document.getElementById("stageName").textContent = STAGES[si].name;
+  document.getElementById("stageName").textContent =
+    STAGES[si].name + (state.tvDone ? "📺" : "");
   const days = Math.floor((Date.now()-state.born)/86400000)+1;
   document.getElementById("ageLabel").textContent = days+"日目";
   setBar("hunger", state.hunger);
   setBar("mood",   state.mood);
   setBar("clean",  state.clean);
   const next = STAGES[si+1];
+  const xpLabel = document.getElementById("xpLabel");
   if(next){
+    xpLabel.textContent = "忠誠度";
     const prev = STAGES[si].xp;
     setBar("xp", clamp((state.xp - prev)/(next.xp - prev)*100), -1);
+  }else if(!state.tvDone){
+    /* 最終形態：地上波出演までの道のりを表示 */
+    xpLabel.textContent = "地上波";
+    const base = STAGES[si].xp;
+    setBar("xp", clamp((state.xp - base)/(TV_XP - base)*100), -1);
   }else{
+    xpLabel.textContent = "忠誠度";
     setBar("xp", 100, -1);
   }
   const ev = isEventDay();
@@ -1035,7 +1257,7 @@ setInterval(()=>{
   if(state.mood<=25)   lows.push("bored");
   if(state.clean<=25)  lows.push("dirty");
   if(lows.length){ say(pick(LINES[pick(lows)])); }
-  else{ say(pick(LINES.idleGood)); }
+  else{ say(pick(state.tvDone && Math.random() < 0.4 ? LINES.idleTv : LINES.idleGood)); }
 }, 22000);
 
 /* ================= ドット絵描画 ================= */
@@ -1242,11 +1464,27 @@ function render(){
   else if(si===1) drawChibi(mood, blink);
   else if(si===2) drawTween(mood, blink);
   else if(si===3) drawQueen(mood, blink, false, false, frame);
-  else if(si===4) drawQueen(mood, blink, true, false, frame);
   else            drawQueen(mood, blink, true, true, frame);
   ctx.restore();
   if(isEventDay()) drawConfetti(frame);
   if(dereFx > Date.now()) drawHearts(frame);
+  /* 地上波エンディング：テレビ画面に本人をライブ中継 */
+  if(document.getElementById("tvOvl").classList.contains("show")){
+    const tcv = document.getElementById("tvcv");
+    const tctx = tcv.getContext("2d");
+    tctx.imageSmoothingEnabled = false;
+    tctx.fillStyle = "#d5c8ea";
+    tctx.fillRect(0, 0, tcv.width, tcv.height);
+    tctx.drawImage(cv, 0, 0);
+    /* スタジオ照明のキラキラ */
+    tctx.fillStyle = "#e8b830";
+    for(let i=0;i<4;i++){
+      if((frame + i) % 3 === 0) continue;
+      const x = ((frame*7 + i*31) % 32) * 4;
+      const y = ((frame*3 + i*13) % 8) * 4;
+      tctx.fillRect(x, y, 4, 4);
+    }
+  }
 }
 setInterval(render, 250);
 
@@ -1282,13 +1520,14 @@ async function init(){
   else if(stageIndex()===0){ say(pick(LINES.eggIdle)); }
   else if(state.health < 40){ say(pick(LINES.comeback), 9000); } /* 長期放置明けは瀕死のお出迎え */
   else if(newDay){ dailyGreeting(); }
-  else{ say(pick(LINES.welcome)); }
+  else{ say(timeWelcome(), 7000); }
   /* 訪問時のシークレット解放チェック（生まれてから有効） */
   if(state.alive && stageIndex() >= 1){
     let sDelay = 11000; /* あいさつ演出の後に流す */
     if(new Date().getHours() < 5 && unlockSecret("s05", sDelay)) sDelay += 10500; /* 真夜中の訪問 */
     const days = Math.floor((Date.now()-state.born)/86400000)+1;
     if(days >= 10) unlockSecret("s07", sDelay); /* 10日仕えた */
+    checkTvDebut(2500); /* すでに条件を満たしていたら開幕で祝う */
   }
   await saveState();
 }
@@ -1337,6 +1576,47 @@ document.querySelector(".crest").addEventListener("click", ()=>{
   }
 });
 document.getElementById("b-restart").addEventListener("click", resetGame);
+document.getElementById("b-tvClose").addEventListener("click", ()=>{
+  clearInterval(tvLineTimer);
+  document.getElementById("tvOvl").classList.remove("show");
+  say("見たか{NAME}！これがロマ子様の実力だじょ！！次は冠番組だかんな！！", 9000);
+});
+/* 出演済みなら下僕欄タップでいつでも再視聴 */
+document.getElementById("servantLine").addEventListener("click", ()=>{
+  if(state && state.tvDone) showTvEnding(false);
+});
+/* ロマ子様ご本人へのタッチ（連打すると怒られる） */
+let touchTimes = [];
+cv.addEventListener("click", ()=>{
+  if(!state || !state.alive) return;
+  const now = Date.now();
+  touchTimes = touchTimes.filter(t=>now - t < 4000);
+  touchTimes.push(now);
+  Sound.play("tap");
+  if(stageIndex()===0){ say(pick(LINES.eggTouch), 5000); return; }
+  if(touchTimes.length >= 6){
+    /* 4秒以内に6回以上＝しつこい */
+    touchTimes = [];
+    state.mood = clamp(state.mood - 3);
+    say(pick(LINES.touchRage), 6000);
+  }else{
+    const min = Math.min(state.hunger, state.mood, state.clean);
+    if(min <= 25 || state.health < 40){
+      say(pick(LINES.touchNeedy), 6000);
+    }else{
+      state.mood = clamp(state.mood + 1);
+      const avg = (state.hunger + state.mood + state.clean) / 3;
+      if(avg >= 65){
+        say(pick(LINES.touchHappy), 5000);
+        dereFx = Math.max(dereFx, Date.now() + 1600); /* ハートがふわっと出る */
+      }else{
+        say(pick(LINES.touchTsun), 5000);
+      }
+    }
+  }
+  saveState();
+  refreshUI();
+});
 setInterval(minuteLoop, 5000);
 setInterval(saveState, 30000);
 /* 起動は何があっても止めない */
