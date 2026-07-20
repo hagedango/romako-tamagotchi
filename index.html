@@ -347,7 +347,7 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
     <img id="shareImg" alt="ロマ子様ステータスカード"
       style="width:100%;border-radius:12px;border:1.5px solid var(--gold-d);margin-bottom:12px">
     <p>①上の画像を長押しして保存<br>②下のボタンでポスト画面を開く<br>③保存した画像を添付してポスト！</p>
-    <a class="gold" id="shareIntent" href="#" target="_blank" rel="noopener">𝕏 ポスト画面を開く</a>
+    <button class="gold" id="shareIntent">𝕏 ポスト画面を開く</button>
     <button class="gold" id="b-shareClose" style="margin-top:12px">閉じる</button>
   </div>
 </div>
@@ -362,7 +362,7 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
     </div>
     <p class="tv-line" id="tvLine"></p>
     <div class="credits-window"><div class="credits" id="credits"></div></div>
-    <a class="gold" id="tvShare" href="#" target="_blank" rel="noopener">𝕏で自慢する</a>
+    <button class="gold" id="tvShare">𝕏で自慢する</button>
     <button class="gold" id="b-tvClose" style="margin-top:10px">これからも仕える</button>
   </div>
 </div>
@@ -907,6 +907,20 @@ function tvShareText(){
   return "📺祝・地上波出演📺\n罵倒の女王・罵尻ロマ子様、ついに全国デビューだじょ！！\nマネージャーは私です🐷\n" + gameUrl
     + "\n#罵尻ロマ子様 #きんたまごっち #8月10日罵倒の日";
 }
+async function shareTvDebut(){
+  const text = tvShareText();
+  const intent = "https://x.com/intent/post?text=" + encodeURIComponent(text);
+  /* スマホ：共有シートからXアプリへ直接渡す */
+  if(navigator.share && window.matchMedia("(pointer: coarse)").matches){
+    try{
+      await navigator.share({ text: text });
+      return;
+    }catch(e){
+      if(e && e.name === "AbortError") return; /* ユーザーがキャンセル */
+    }
+  }
+  openExternal(intent);
+}
 function buildTvCredits(){
   const days = Math.floor((Date.now()-state.born)/86400000)+1;
   document.getElementById("credits").innerHTML = "";
@@ -935,8 +949,6 @@ function showTvEnding(first){
     "「あ、ありがとな！！…んむ！！一回しか言わねぇかんな！！」"
   ];
   buildTvCredits();
-  document.getElementById("tvShare").href =
-    "https://x.com/intent/post?text=" + encodeURIComponent(tvShareText());
   let i = 0;
   const lineEl = document.getElementById("tvLine");
   lineEl.textContent = fillName(tvScript[0]);
@@ -1060,6 +1072,19 @@ function doAction(id, btn){
 }
 
 /* ================= 𝕏シェア（画像カード付き） ================= */
+/* 外部リンクを確実に開く。
+   アプリ内ブラウザやポップアップ制限で新規タブが開けない場合は同じタブで開く */
+function openExternal(url){
+  saveState(); /* 同じタブで飛ぶ場合に備えて育成状況を確定保存 */
+  let w = null;
+  try{ w = window.open(url, "_blank"); }catch(e){ w = null; }
+  if(w){
+    try{ w.opener = null; }catch(e){}
+    return true;
+  }
+  location.href = url;
+  return false;
+}
 function buildShareText(){
   const d = DEX.find(x=>x.id===state.lastInsult);
   let flair = "";
@@ -1127,10 +1152,10 @@ function buildCard(){
   g.fillText("#罵尻ロマ子様 #きんたまごっち", 240, 598);
   return c;
 }
+let shareIntentUrl = "";
 function openShareOverlay(card, text){
   document.getElementById("shareImg").src = card.toDataURL("image/png");
-  document.getElementById("shareIntent").href =
-    "https://x.com/intent/post?text=" + encodeURIComponent(text);
+  shareIntentUrl = "https://x.com/intent/post?text=" + encodeURIComponent(text);
   document.getElementById("shareOvl").classList.add("show");
 }
 async function shareToX(){
@@ -1560,6 +1585,9 @@ document.getElementById("b-sound").addEventListener("click", async ()=>{
          : "（サウンド：OFFだじょ。静かにしてほしいのか？）", 5000);
   await saveState();
 });
+document.getElementById("shareIntent").addEventListener("click", ()=>{
+  if(shareIntentUrl) openExternal(shareIntentUrl);
+});
 document.getElementById("b-shareClose").addEventListener("click", ()=>document.getElementById("shareOvl").classList.remove("show"));
 /* 隠しコマンド：👑を5回タップで罵倒の日プレビュー */
 let crestTaps = 0, crestTimer = null;
@@ -1576,6 +1604,7 @@ document.querySelector(".crest").addEventListener("click", ()=>{
   }
 });
 document.getElementById("b-restart").addEventListener("click", resetGame);
+document.getElementById("tvShare").addEventListener("click", shareTvDebut);
 document.getElementById("b-tvClose").addEventListener("click", ()=>{
   clearInterval(tvLineTimer);
   document.getElementById("tvOvl").classList.remove("show");
