@@ -168,6 +168,8 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   background:rgba(10,4,18,.9);z-index:50;padding:20px;
 }
 .ovl.show{display:flex}
+/* 認定証シェアはエンディングの上に重ねて出す */
+#shareOvl{z-index:60}
 .ovl-box{
   text-align:center;max-width:340px;width:100%;
   border:2px solid var(--gold-d);border-radius:20px;
@@ -358,11 +360,12 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
     <h2>📺 祝・地上波出演！！</h2>
     <div class="tv-frame">
       <canvas id="tvcv" width="128" height="128"></canvas>
-      <div class="tv-caption">🔴生放送　罵倒の女王・罵尻ロマ子様</div>
+      <div class="tv-caption" id="tvCaption">🔴生放送　罵倒の女王・罵尻ロマ子様</div>
     </div>
     <p class="tv-line" id="tvLine"></p>
     <div class="credits-window"><div class="credits" id="credits"></div></div>
-    <button class="gold" id="tvShare">𝕏で自慢する</button>
+    <button class="gold" id="tvShare">🏅 認定証を𝕏で自慢する</button>
+    <button class="gold" id="tvForm" style="margin-top:10px;display:none">📋 達成者名簿に名を刻む</button>
     <button class="gold" id="b-tvClose" style="margin-top:10px">これからも仕える</button>
   </div>
 </div>
@@ -380,6 +383,10 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 "use strict";
 /* ================= 状態管理 ================= */
 const KEY = "romako-tama-v1";
+/* 達成者名簿（Googleフォーム）のURL。
+   ここに自分のフォームURLを貼ると、エンディングに登録ボタンが出ます。
+   空のままなら、そのボタンは表示されません。 */
+const FORM_URL = "";
 const STAGES = [
   { xp: 0,    name: "金の卵" },
   { xp: 40,   name: "ロマ子様（幼少期）" },
@@ -421,7 +428,7 @@ function freshState(){
     xp: 0, born: Date.now(), last: Date.now(), alive: true,
     name: null, dex: [], dereSeen: false, lastInsult: null,
     streak: 0, lastVisit: null, sound: false,
-    xpToday: 0, xpDay: null, capDay: null, tvDone: false
+    xpToday: 0, xpDay: null, capDay: null, tvDone: false, dreamLv: 0
   };
 }
 async function loadState(){
@@ -458,13 +465,15 @@ async function resetGame(){
   const keepDere = state ? state.dereSeen : false;
   const keepSound = state ? state.sound : false;
   const keepTv = state ? state.tvDone : false;
+  const keepDream = state ? (state.dreamLv || 0) : 0;
   try{ if(storageOk) localStorage.removeItem(KEY); }catch(e){}
   state = freshState();
   state.name = keepName;      // 名前と図鑑は引き継ぎ（コレクションは財産！）
   state.dex = keepDex;
   state.dereSeen = keepDere;
   state.sound = keepSound;
-  state.tvDone = keepTv;      // 地上波出演の実績も財産
+  state.tvDone = keepTv;      // 叶えた夢の実績も財産
+  state.dreamLv = keepDream;
 
   document.getElementById("over").classList.remove("show");
   Sound.startBgm();           // ゲームオーバーで止めたBGMを再開
@@ -862,10 +871,13 @@ function gainXP(n){
   const before = stageIndex();
   state.xp += add;
   state.xpToday += add;
-  if(add < n && state.capDay !== today){
-    /* その日はじめて上限に達したときだけ知らせる */
+  if(add < n){
+    /* 上限に達したことが伝わらないと「壊れてる」と思われるので毎回知らせる */
+    const first = state.capDay !== today;
     state.capDay = today;
-    setTimeout(()=>say("むっ！？今日の忠誠はもう受け取り切っただじょ！続きはまた明日な、{NAME}！", 9000), 600);
+    setTimeout(()=>say(first
+      ? "むっ！？今日の忠誠はもう受け取り切っただじょ！続きはまた明日な、{NAME}！"
+      : "だから今日はもう満タンだっつってんだろ！明日また来いや{NAME}！", 9000), 600);
   }
   const after = stageIndex();
   if(after > before){
@@ -895,37 +907,173 @@ function checkDere(){
     }, 10300);
     state.xp += 20;
     saveState();
-    checkTvDebut(15000); /* デレの後に地上波が決まることも */
+    checkDreams(15000); /* デレの後に夢が叶うことも */
   }
 }
 
-/* ================= エンディング：地上波出演 ================= */
-const TV_XP = 1500; /* 最終形態(1000)からさらに忠誠を積むと夢が叶う */
-let tvLineTimer = null;
-function tvShareText(){
-  const gameUrl = location.href.split(/[?#]/)[0];
-  return "📺祝・地上波出演📺\n罵倒の女王・罵尻ロマ子様、ついに全国デビューだじょ！！\nマネージャーは私です🐷\n" + gameUrl
-    + "\n#罵尻ロマ子様 #きんたまごっち #8月10日罵倒の日";
-}
-async function shareTvDebut(){
-  const text = tvShareText();
-  const intent = "https://x.com/intent/post?text=" + encodeURIComponent(text);
-  /* スマホ：共有シートからXアプリへ直接渡す */
-  if(navigator.share && window.matchMedia("(pointer: coarse)").matches){
-    try{
-      await navigator.share({ text: text });
-      return;
-    }catch(e){
-      if(e && e.name === "AbortError") return; /* ユーザーがキャンセル */
-    }
+/* ================= エンディング：叶えていく夢 =================
+   最終形態(1000)から先は、ロマ子様の夢が段階的に叶っていく。
+   1日の上限330なので、めっちゃ触る人で 地上波4日目→冠番組6日目→ドーム9日目→紅白12日目 */
+const DREAMS = [
+  {
+    key:"tv", xp:1200, icon:"📺", name:"地上波",
+    title:"📺 祝・地上波出演！！",
+    caption:"🔴生放送　罵倒の女王・罵尻ロマ子様",
+    creditsTitle:"📺 罵倒の女王 全国デビュー特番 📺",
+    certTitle:"地上波出演 認定証",
+    shareLine:"ついに全国デビューだじょ！！",
+    script:[
+      "「つ、ついに来ただじょ…全国放送だじょ…！」",
+      "「全国のブタ共！！ロマ子様の罵倒、しかと聞けや！！」",
+      "「……{NAME}。ここまで来れたのは、おめぇのおかげだじょ。」",
+      "「あ、ありがとな！！…んむ！！一回しか言わねぇかんな！！」"
+    ],
+    closing:"〜 罵倒はまだまだ続くだじょ！！ 〜"
+  },
+  {
+    key:"crown", xp:1800, icon:"🎬", name:"冠番組",
+    title:"🎬 祝・冠番組スタート！！",
+    caption:"🔴毎週月曜　ロマ子様の罵倒天国",
+    creditsTitle:"🎬 ロマ子様の罵倒天国 🎬",
+    certTitle:"冠番組 認定証",
+    shareLine:"冠番組まで始まっただじょ！！",
+    script:[
+      "「おいブタ共！ロマ子様の冠番組だじょ！！」",
+      "「毎週テメェらを罵倒してやんよ！録画しとけ！！」",
+      "「…{NAME}、おめぇがマネージャーで良かっただじょ。」",
+      "「な、なんでもねぇ！！次いくぞ次！！」"
+    ],
+    closing:"〜 次はもっとデカい舞台だかんな！ 〜"
+  },
+  {
+    key:"dome", xp:2600, icon:"🏟", name:"東京ドーム",
+    title:"🏟 祝・東京ドーム公演！！",
+    caption:"🔴満員御礼　罵倒ライブ in TOKYO DOME",
+    creditsTitle:"🏟 罵倒ライブ in TOKYO DOME 🏟",
+    certTitle:"東京ドーム公演 認定証",
+    shareLine:"東京ドームを満員にしただじょ！！",
+    script:[
+      "「見ろや{NAME}！！ドームが全部ブタで埋まってんぞ！！」",
+      "「5万匹まとめて罵倒してやんよ！！んむ！！」",
+      "「……ここまで連れてきてくれて、ありがとな。」",
+      "「聞こえてねぇふりしろ！！恥ずかしいだろが！！」"
+    ],
+    closing:"〜 夢の続きは、大晦日に 〜"
+  },
+  {
+    key:"kohaku", xp:3600, icon:"🎌", name:"紅白", final:true,
+    title:"🎌 祝・紅白歌合戦 出場！！",
+    caption:"🔴紅白歌合戦　紅組トリ",
+    creditsTitle:"🎌 紅白歌合戦 紅組トリ 🎌",
+    certTitle:"紅白出場 認定証",
+    shareLine:"ついに紅白のトリを務めただじょ！！",
+    script:[
+      "「大晦日だじょ…！！ついにここまで来ちまった…！」",
+      "「全国のブタ共！！今年も世話になっただじょ！！」",
+      "「{NAME}…あの卵を拾ってくれた日から、ずっと夢だったんだじょ。」",
+      "「ありがとな。……これからも、そばにいろよ。」"
+    ],
+    closing:"〜 完 〜　罵尻ロマ子様の罵倒は、これからも続く"
   }
-  openExternal(intent);
+];
+let tvLineTimer = null;
+function dreamsDone(){
+  /* 旧セーブ（tvDoneのみ）からの引き継ぎ */
+  if(state.dreamLv == null) state.dreamLv = state.tvDone ? 1 : 0;
+  return state.dreamLv;
 }
-function buildTvCredits(){
+function nextDream(){ return DREAMS[dreamsDone()]; }
+function lastDream(){ return dreamsDone() > 0 ? DREAMS[dreamsDone()-1] : null; }
+/* 夢の起点XP（最初は最終形態の1000、以降は前の夢のXP） */
+function dreamBaseXp(d){
+  const i = DREAMS.indexOf(d);
+  return i <= 0 ? STAGES[STAGES.length-1].xp : DREAMS[i-1].xp;
+}
+
+/* ---- 認定証カード ---- */
+function buildCertCard(dream){
+  const c = document.createElement("canvas");
+  c.width = 480; c.height = 620;
+  const g = c.getContext("2d");
+  const bg = g.createLinearGradient(0,0,0,620);
+  bg.addColorStop(0,"#3d2158"); bg.addColorStop(1,"#1a0e24");
+  g.fillStyle = bg; g.fillRect(0,0,480,620);
+  /* 二重の金枠＝賞状らしさ */
+  g.strokeStyle = "#e8b830"; g.lineWidth = 5; g.strokeRect(12,12,456,596);
+  g.strokeStyle = "#9c7714"; g.lineWidth = 2; g.strokeRect(24,24,432,572);
+  g.textAlign = "center";
+  g.fillStyle = "#e8b830";
+  g.font = 'bold 30px "Shippori Mincho", serif';
+  g.fillText(dream.icon + " " + dream.certTitle, 240, 74);
+  g.fillStyle = "#b8a4d4";
+  g.font = '13px "DotGothic16", monospace';
+  g.fillText("きんたまごっち 〜罵尻ロマ子様ご機嫌うかがい機〜", 240, 100);
+  /* 本人 */
+  g.fillStyle = "#d5c8ea";
+  if(g.roundRect){ g.beginPath(); g.roundRect(120,116,240,240,16); g.fill(); }
+  else g.fillRect(120,116,240,240);
+  g.imageSmoothingEnabled = false;
+  g.drawImage(cv, 128, 124, 224, 224);
+  /* 授与文 */
   const days = Math.floor((Date.now()-state.born)/86400000)+1;
-  document.getElementById("credits").innerHTML = "";
+  g.fillStyle = "#f5edda";
+  g.font = 'bold 26px "Shippori Mincho", serif';
+  g.fillText(state.name || "名無しのブタ", 240, 400);
+  g.fillStyle = "#d9cbee";
+  g.font = '15px "DotGothic16", monospace';
+  g.fillText("（" + rankName() + "）", 240, 426);
+  g.font = '14px "DotGothic16", monospace';
+  g.fillText("育成日数 " + days + "日 ／ 賜った罵倒 " + dexGotCount() + "／" + DEX.length + "種", 240, 456);
+  g.fillText("連続出勤 " + (state.streak||0) + "日", 240, 478);
+  g.fillStyle = "#f5edda";
+  g.font = '15px "DotGothic16", monospace';
+  g.fillText("上記の者、女王の夢を叶えし", 240, 516);
+  g.fillText("忠実なるブタと認める", 240, 540);
+  const now = new Date();
+  g.fillStyle = "#8f7ab0";
+  g.font = '13px "DotGothic16", monospace';
+  g.fillText(now.getFullYear()+"年"+(now.getMonth()+1)+"月"+now.getDate()+"日　罵尻ロマ子様", 240, 572);
+  g.fillText("#ロマ子様達成報告", 240, 594);
+  return c;
+}
+function certShareText(dream){
+  const days = Math.floor((Date.now()-state.born)/86400000)+1;
+  const gameUrl = location.href.split(/[?#]/)[0];
+  return "🏅" + dream.certTitle + "🏅\n"
+    + (state.name || "名無しのブタ") + "（" + rankName() + "）\n"
+    + "育成" + days + "日／罵倒" + dexGotCount() + "種\n"
+    + dream.shareLine + "\n" + gameUrl
+    + "\n#ロマ子様達成報告 #きんたまごっち";
+}
+async function shareCert(){
+  const dream = lastDream() || DREAMS[0];
+  const text = certShareText(dream);
+  const card = buildCertCard(dream);
+  card.toBlob(async (blob)=>{
+    /* スマホ：認定証の画像ごと共有シートへ */
+    if(blob && navigator.canShare){
+      const file = new File([blob], "romako-cert.png", { type:"image/png" });
+      if(navigator.canShare({ files:[file] })){
+        try{
+          await navigator.share({ text: text, files: [file] });
+          return;
+        }catch(e){
+          if(e && e.name === "AbortError") return;
+        }
+      }
+    }
+    /* PC：認定証を表示して、ポスト画面を開くボタンを出す */
+    openShareOverlay(card, text);
+  }, "image/png");
+}
+
+/* ---- エンディング演出 ---- */
+function buildCredits(dream){
+  const days = Math.floor((Date.now()-state.born)/86400000)+1;
+  const box = document.getElementById("credits");
+  box.innerHTML = "";
   const lines = [
-    "📺 罵倒の女王 全国デビュー特番 📺",
+    dream.creditsTitle,
     "出演：罵尻ロマ子様",
     "マネージャー：" + (state.name||"名無しのブタ") + "（" + rankName() + "）",
     "育成日数：" + days + "日",
@@ -933,44 +1081,46 @@ function buildTvCredits(){
     "協力：全国のブタ共",
     "SPECIAL THANKS：あなた",
     "",
-    "〜 罵倒はまだまだ続くだじょ！！ 〜"
+    dream.closing
   ];
   for(const ln of lines){
     const div = document.createElement("div");
     div.textContent = ln;
-    document.getElementById("credits").appendChild(div);
+    box.appendChild(div);
   }
 }
-function showTvEnding(first){
-  const tvScript = [
-    "「つ、ついに来ただじょ…全国放送だじょ…！」",
-    "「全国のブタ共！！ロマ子様の罵倒、しかと聞けや！！」",
-    "「……{NAME}。ここまで来れたのは、おめぇのおかげだじょ。」",
-    "「あ、ありがとな！！…んむ！！一回しか言わねぇかんな！！」"
-  ];
-  buildTvCredits();
+function showDreamEnding(dream, first){
+  document.getElementById("tvOvl").querySelector("h2").textContent = dream.title;
+  document.getElementById("tvCaption").textContent = dream.caption;
+  buildCredits(dream);
   let i = 0;
   const lineEl = document.getElementById("tvLine");
-  lineEl.textContent = fillName(tvScript[0]);
+  lineEl.textContent = fillName(dream.script[0]);
   clearInterval(tvLineTimer);
   tvLineTimer = setInterval(()=>{
-    i = (i+1) % tvScript.length;
-    lineEl.textContent = fillName(tvScript[i]);
+    i = (i+1) % dream.script.length;
+    lineEl.textContent = fillName(dream.script[i]);
   }, 4200);
+  /* 次の夢がある間は「これからも仕える」、真エンディングでは締めの言葉に */
+  document.getElementById("b-tvClose").textContent =
+    dream.final ? "ロマ子様と歩き続ける" : "これからも仕える";
+  document.getElementById("tvForm").style.display = FORM_URL ? "inline-block" : "none";
   document.getElementById("tvOvl").classList.add("show");
   Sound.play("evolve");
   setTimeout(()=>Sound.play("dere"), 700);
   if(first){
-    state.tvDone = true;
+    state.dreamLv = DREAMS.indexOf(dream) + 1;
+    state.tvDone = true; /* 旧データとの互換 */
     saveState();
     refreshUI();
   }
 }
-function checkTvDebut(delay=1200){
-  if(state.tvDone || !state.alive) return;
+function checkDreams(delay=1200){
+  if(!state.alive) return;
   if(stageIndex() !== STAGES.length-1) return;
-  if(state.xp < TV_XP) return;
-  setTimeout(()=>showTvEnding(true), delay);
+  const d = nextDream();
+  if(!d || state.xp < d.xp) return;
+  setTimeout(()=>showDreamEnding(d, true), delay);
 }
 
 /* ================= 連続出勤（デイリー） ================= */
@@ -997,7 +1147,7 @@ function dailyGreeting(){
     checkDexComplete(9800);
   }, 6800);
   if(state.streak===7) unlockSecret("s02", 16500); /* 連続出勤7日 */
-  checkTvDebut(17000); /* 出勤ボーナスで届いた場合はあいさつの後に */
+  checkDreams(17000); /* 出勤ボーナスで届いた場合はあいさつの後に */
 }
 
 /* ================= アクション ================= */
@@ -1066,7 +1216,7 @@ function doAction(id, btn){
   }
   setCooldown(id, btn);
   checkDere();
-  checkTvDebut(1500);
+  checkDreams(1500);
   saveState();
   refreshUI();
 }
@@ -1220,7 +1370,7 @@ function setBar(name, val, low=20){
 function refreshUI(){
   const si = stageIndex();
   document.getElementById("stageName").textContent =
-    STAGES[si].name + (state.tvDone ? "📺" : "");
+    STAGES[si].name + (lastDream() ? lastDream().icon : "");
   const days = Math.floor((Date.now()-state.born)/86400000)+1;
   document.getElementById("ageLabel").textContent = days+"日目";
   setBar("hunger", state.hunger);
@@ -1232,11 +1382,12 @@ function refreshUI(){
     xpLabel.textContent = "忠誠度";
     const prev = STAGES[si].xp;
     setBar("xp", clamp((state.xp - prev)/(next.xp - prev)*100), -1);
-  }else if(!state.tvDone){
-    /* 最終形態：地上波出演までの道のりを表示 */
-    xpLabel.textContent = "地上波";
-    const base = STAGES[si].xp;
-    setBar("xp", clamp((state.xp - base)/(TV_XP - base)*100), -1);
+  }else if(nextDream()){
+    /* 最終形態：次に叶える夢までの道のりを表示 */
+    const nd = nextDream();
+    xpLabel.textContent = nd.name;
+    const base = dreamBaseXp(nd);
+    setBar("xp", clamp((state.xp - base)/(nd.xp - base)*100), -1);
   }else{
     xpLabel.textContent = "忠誠度";
     setBar("xp", 100, -1);
@@ -1251,9 +1402,16 @@ function refreshUI(){
     bn.textContent = "◆ 8月10日は罵倒の日 ◆ あと" + daysToBatouDay() + "日で限定罵倒が降臨！";
     bn.classList.remove("today");
   }
-  document.getElementById("servantLine").textContent =
-    (ev ? "🎉罵倒の日🎉 " : "") + "下僕：" + (state.name || "？？？") +
+  let sLine = (ev ? "🎉罵倒の日🎉 " : "") + "下僕：" + (state.name || "？？？") +
     "（" + rankName() + "）／連続" + (state.streak||0) + "日";
+  /* 次の夢までの残りと、その日の忠誠が満タンかどうかを常に見せる */
+  if(!next && nextDream()){
+    sLine += "／" + nextDream().icon + "あと" + Math.max(0, Math.ceil(nextDream().xp - state.xp));
+  }
+  if(state.xpDay === todayStr() && state.xpToday >= DAILY_XP_CAP){
+    sLine += "／本日の忠誠は満タン！また明日";
+  }
+  document.getElementById("servantLine").textContent = sLine;
   const egg = si===0;
   document.getElementById("b-feed").textContent   = egg? "🔥 温める"     : "🍰 エサを献上";
   document.getElementById("b-praise").textContent = egg? "💬 話しかける" : "👏 褒め称える";
@@ -1282,7 +1440,7 @@ setInterval(()=>{
   if(state.mood<=25)   lows.push("bored");
   if(state.clean<=25)  lows.push("dirty");
   if(lows.length){ say(pick(LINES[pick(lows)])); }
-  else{ say(pick(state.tvDone && Math.random() < 0.4 ? LINES.idleTv : LINES.idleGood)); }
+  else{ say(pick(lastDream() && Math.random() < 0.4 ? LINES.idleTv : LINES.idleGood)); }
 }, 22000);
 
 /* ================= ドット絵描画 ================= */
@@ -1552,7 +1710,7 @@ async function init(){
     if(new Date().getHours() < 5 && unlockSecret("s05", sDelay)) sDelay += 10500; /* 真夜中の訪問 */
     const days = Math.floor((Date.now()-state.born)/86400000)+1;
     if(days >= 10) unlockSecret("s07", sDelay); /* 10日仕えた */
-    checkTvDebut(2500); /* すでに条件を満たしていたら開幕で祝う */
+    checkDreams(2500); /* すでに条件を満たしていたら開幕で祝う */
   }
   await saveState();
 }
@@ -1604,15 +1762,21 @@ document.querySelector(".crest").addEventListener("click", ()=>{
   }
 });
 document.getElementById("b-restart").addEventListener("click", resetGame);
-document.getElementById("tvShare").addEventListener("click", shareTvDebut);
+document.getElementById("tvShare").addEventListener("click", shareCert);
+document.getElementById("tvForm").addEventListener("click", ()=>{
+  if(FORM_URL) openExternal(FORM_URL);
+});
 document.getElementById("b-tvClose").addEventListener("click", ()=>{
   clearInterval(tvLineTimer);
   document.getElementById("tvOvl").classList.remove("show");
-  say("見たか{NAME}！これがロマ子様の実力だじょ！！次は冠番組だかんな！！", 9000);
+  const nd = nextDream();
+  say(nd ? "見たか{NAME}！！次は" + nd.name + "だかんな！！ついてこいや！"
+         : "夢は全部叶えちまっただじょ…！{NAME}、次は何を目指すだじょ？", 9000);
+  refreshUI();
 });
 /* 出演済みなら下僕欄タップでいつでも再視聴 */
 document.getElementById("servantLine").addEventListener("click", ()=>{
-  if(state && state.tvDone) showTvEnding(false);
+  if(state && lastDream()) showDreamEnding(lastDream(), false);
 });
 /* ロマ子様ご本人へのタッチ（連打すると怒られる） */
 let touchTimes = [];
