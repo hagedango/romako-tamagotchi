@@ -51,6 +51,12 @@ body{
   animation:banner-glow 1.2s infinite;
 }
 @keyframes banner-glow{50%{box-shadow:0 0 18px rgba(232,184,48,.75)}}
+/* プチ罵倒の日：本祭より控えめに、でも気付けるように */
+.event-banner.mini{
+  color:var(--gold);
+  background:rgba(232,184,48,.18);
+  border-color:var(--gold);
+}
 @media (prefers-reduced-motion: reduce){
   .event-banner.today{animation:none}
 }
@@ -502,17 +508,17 @@ const DEX = [
   { id:"u04", r:2, t:"傷つける一歩手前で止めてやってんの、分かってんだろ{NAME}？" },
   { id:"r01", r:3, t:"立派なマゾ豚にして出荷させてやんぞ！！" },
   { id:"r02", r:3, t:"ホントは嬉しいんだじょ…でも言わせんな{NAME}！" },
-  { id:"e01", r:5, t:"8月10日は罵倒の日！一年で一番ありがたい日だと心得ろ、ブタ共！！", hint:"8月10日・罵倒の日に何かが…" },
-  { id:"e02", r:5, t:"罵倒の日スペシャル！{NAME}、テメェは最高のブタだよ！！…んむ！！言ってやったかんな！！", hint:"8月10日・罵倒の日に何かが…" },
+  { id:"e01", r:5, t:"8月10日は罵倒の日！一年で一番ありがたい日だと心得ろ、ブタ共！！", hint:"毎月10日に何かが…本祭は8/10" },
+  { id:"e02", r:5, t:"罵倒の日スペシャル！{NAME}、テメェは最高のブタだよ！！…んむ！！言ってやったかんな！！", hint:"毎月10日に何かが…本祭は8/10" },
   { id:"s01", r:9, t:"ブタ共がいるから…ロマ子様、ここまで来れたんだじょ。", hint:"ある条件で女王の本音が…" },
   { id:"s02", r:9, t:"7日連続…テメェ、もうロマ子様なしじゃ生きらんねぇ体になったな！？んむ！！", hint:"毎日欠かさず通い続けると…" },
   { id:"s03", r:9, t:"女王の姿のロマ子様を拝めるのは選ばれしブタだけだじょ！！誇れや{NAME}！！", hint:"女王の姿まで育て上げると…" },
   { id:"s04", r:9, t:"罵倒を集めまくりやがって…このド変態コレクターが！！…ちょっとだけ褒めてやんよ。", hint:"通常の罵倒を全部集めると…" },
   { id:"s05", r:9, t:"こんな夜中に罵倒されに来たのか…？しょうがねぇ夜更かしブタだじょ…早く寝ろよ？", hint:"真夜中に会いに来ると…" },
-  { id:"s06", r:9, t:"に、二度と離れんじゃねぇぞ{NAME}…！心配なんかしてねぇけどな！！んむ！！", hint:"一度お別れして、戻ってくると…" },
+  { id:"s06", r:9, t:"に、二度と離れんじゃねぇぞ{NAME}…！心配なんかしてねぇけどな！！んむ！！", hint:"丸一日ぶりに帰ってくると…" },
   { id:"s07", r:9, t:"10日も仕えるとは…認めてやんよ。{NAME}はロマ子様の一番のブタだじょ！！", hint:"長く仕え続けると…" }
 ];
-const RARITY_LABEL = { 1:"★ コモン", 2:"★★ ツンデレ", 3:"★★★ レア", 5:"◆ 8/10限定", 9:"♥ シークレット" };
+const RARITY_LABEL = { 1:"★ コモン", 2:"★★ ツンデレ", 3:"★★★ レア", 5:"◆ 10日限定", 9:"♥ シークレット" };
 
 function fillName(t){
   return t.replace(/\{NAME\}/g, state.name || "名無しのブタ");
@@ -523,6 +529,13 @@ function isEventDay(){
   const d = new Date();
   return d.getMonth()===7 && d.getDate()===10; /* 8月10日＝罵倒の日 */
 }
+/* 毎月10日は「プチ罵倒の日」。本祭（8/10）より低い確率で限定罵倒が降りてくる。
+   これがないと、8/10を過ぎてから始めた人は約1年間コンプできない */
+function isMiniEventDay(){
+  if(previewEvent) return false; /* プレビュー中は本祭あつかい */
+  const d = new Date();
+  return d.getDate()===10 && d.getMonth()!==7;
+}
 function daysToBatouDay(){
   const now = new Date();
   const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -532,6 +545,10 @@ function daysToBatouDay(){
 }
 function rollInsult(){
   if(isEventDay() && Math.random() < 0.35){
+    const ev = DEX.filter(d=>d.r===5);
+    return ev[Math.floor(Math.random()*ev.length)];
+  }
+  if(isMiniEventDay() && Math.random() < 0.15){
     const ev = DEX.filter(d=>d.r===5);
     return ev[Math.floor(Math.random()*ev.length)];
   }
@@ -1133,6 +1150,7 @@ function dailyGreeting(){
   state.xp += 5;
   let g;
   if(isEventDay()) g = "今日は8月10日…罵倒の日だじょ！！ロマ子様の本気、見せてやんよ！！";
+  else if(isMiniEventDay()) g = "今日は10日…プチ罵倒の日だじょ！限定罵倒が出るかもしれねぇぞ、{NAME}！";
   else if(state.streak===3) g = "連続出勤3日目…三日坊主卒業だな、{NAME}！";
   else if(state.streak===7) g = "7日連続…どんだけロマ子様が好きなんだよ！ば、罵倒はしてやっかんな！";
   else if(state.streak>1) g = "連続出勤"+state.streak+"日目か…見上げたブタ根性だじょ！";
@@ -1245,7 +1263,9 @@ function buildShareText(){
   /* Xの上限（280単位＝全角140文字相当）に収まるよう短文構成 */
   const cd = isEventDay()
     ? "🎉今日は罵倒の日！！参加しろだじょ🐷"
-    : "罵倒の日(8/10)まであと" + daysToBatouDay() + "日🐷";
+    : isMiniEventDay()
+      ? "毎月10日はプチ罵倒の日🐷 本祭は8/10！"
+      : "罵倒の日(8/10)まであと" + daysToBatouDay() + "日🐷";
   return "👑本日の賜り罵倒👑\n" + flair + "「" + fillName(d.t) + "」\n\n"
     + cd + "\n" + gameUrl + "\n"
     + "#罵尻ロマ子様 #きんたまごっち #8月10日罵倒の日";
@@ -1393,14 +1413,17 @@ function refreshUI(){
     setBar("xp", 100, -1);
   }
   const ev = isEventDay();
-  document.querySelector(".crest").textContent = ev ? "🎉" : "👑";
+  const mini = isMiniEventDay();
+  document.querySelector(".crest").textContent = ev ? "🎉" : (mini ? "✨" : "👑");
   const bn = document.getElementById("eventBanner");
+  bn.classList.toggle("today", ev);
+  bn.classList.toggle("mini", mini);
   if(ev){
     bn.textContent = "🎉 本日8月10日は『罵倒の日』！！限定罵倒が降臨中だじょ！！";
-    bn.classList.add("today");
+  }else if(mini){
+    bn.textContent = "✨ 今日は『プチ罵倒の日』！限定罵倒のチャンスだじょ（本祭は8/10）";
   }else{
     bn.textContent = "◆ 8月10日は罵倒の日 ◆ あと" + daysToBatouDay() + "日で限定罵倒が降臨！";
-    bn.classList.remove("today");
   }
   let sLine = (ev ? "🎉罵倒の日🎉 " : "") + "下僕：" + (state.name || "？？？") +
     "（" + rankName() + "）／連続" + (state.streak||0) + "日";
@@ -1709,7 +1732,10 @@ async function init(){
     let sDelay = 11000; /* あいさつ演出の後に流す */
     if(new Date().getHours() < 5 && unlockSecret("s05", sDelay)) sDelay += 10500; /* 真夜中の訪問 */
     const days = Math.floor((Date.now()-state.born)/86400000)+1;
-    if(days >= 10) unlockSecret("s07", sDelay); /* 10日仕えた */
+    if(days >= 10 && unlockSecret("s07", sDelay)) sDelay += 10500; /* 10日仕えた */
+    /* 丸一日ぶりの帰還。ゲームオーバーからの復活は現実には起きにくいので、
+       「久しぶりに会いに来た」でも女王の本音が聞けるようにする */
+    if(offMins >= 24*60) unlockSecret("s06", sDelay);
     checkDreams(2500); /* すでに条件を満たしていたら開幕で祝う */
   }
   await saveState();
