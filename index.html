@@ -149,7 +149,7 @@ button.cmd:active{transform:translateY(3px);box-shadow:0 1px 0 #3d0517}
 button.cmd:disabled{opacity:.4;cursor:default}
 button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .subbtns{
-  margin-top:12px;display:flex;gap:10px;justify-content:center;
+  margin-top:12px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
 }
 .sub{
   font-family:'Shippori Mincho',serif;font-size:12px;font-weight:600;
@@ -294,9 +294,10 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
     <button class="sub" id="b-dex">📖 罵倒図鑑</button>
     <button class="sub" id="b-share">𝕏 ポスト</button>
     <button class="sub" id="b-sound">🔇 おと</button>
+    <a class="sub" href="3d/index.html" title="3D版（ロマ子様の部屋）を開く">✨ 3D版へ</a>
   </div>
 
-  <div class="plate">ROMAKO ROYAL WORKS</div>
+  <div class="plate">ROMACO ROYAL WORKS</div>
 </div>
 
 <p class="hint">
@@ -388,7 +389,7 @@ button.cmd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 <script>
 "use strict";
 /* ================= 状態管理 ================= */
-const KEY = "romako-tama-v1";
+const KEY = "romako-tama-v1";   /* 保存名は旧表記のまま（変えると育成データが消えるため） */
 /* 達成者名簿（Googleフォーム）のURL。
    ここに自分のフォームURLを貼ると、エンディングに登録ボタンが出ます。
    空のままなら、そのボタンは表示されません。 */
@@ -412,7 +413,7 @@ let saveBusy = false;
 /* --- 保存機能が壊れていてもゲームは必ず動かす --- */
 function storageAvailable(){
   try{
-    const t = "__romako_test__";
+    const t = "__romaco_test__";
     localStorage.setItem(t, "1");
     localStorage.removeItem(t);
     return true;
@@ -1069,7 +1070,7 @@ async function shareCert(){
   card.toBlob(async (blob)=>{
     /* スマホ：認定証の画像ごと共有シートへ */
     if(blob && navigator.canShare){
-      const file = new File([blob], "romako-cert.png", { type:"image/png" });
+      const file = new File([blob], "romaco-cert.png", { type:"image/png" });
       if(navigator.canShare({ files:[file] })){
         try{
           await navigator.share({ text: text, files: [file] });

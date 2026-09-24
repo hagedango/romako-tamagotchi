@@ -1,0 +1,2320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>きんたまごっち 3D</title>
+<meta name="description" content="食卓の魔王ロマ子様を育てる、レトロフューチャーな3Dたまごっち。画像をドロップすると自分だけのマスコットも召喚できます。">
+<meta name="theme-color" content="#0b0616">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#07040f;
+  --ink:#f6efff; --muted:#b6a6d8; --dim:#8a79b0;
+  --panel:rgba(24,13,44,.58); --panel-line:rgba(206,180,255,.16);
+  --gold:#f2c14e; --pink:#ff6b9a; --mint:#4fe0c4; --yellow:#ffd25a; --danger:#ff4d6d;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{
+  background:radial-gradient(120% 90% at 50% 0%,#2b1452 0%,#120824 45%,#06030c 100%);
+  background-color:var(--bg0);
+  color:var(--ink);
+  font-family:'Zen Maru Gothic',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -webkit-user-select:none;user-select:none;
+  overscroll-behavior:none;
+}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;outline:none}
+#gl.dragging{cursor:grabbing}
+#gl.hover{cursor:pointer}
+.scan{position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px);mix-blend-mode:overlay}
+.vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.5) 100%)}
+
+/* ---------- ブランド ---------- */
+.brand{position:fixed;left:max(18px,env(safe-area-inset-left));top:max(16px,env(safe-area-inset-top));pointer-events:none;z-index:3}
+.logo{font-weight:900;font-size:22px;letter-spacing:.14em;line-height:1;
+  background:linear-gradient(90deg,#ffe7a8,#f2c14e 45%,#ff8fc0);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 14px rgba(242,193,78,.35))}
+.logo small{font-size:.5em;margin-left:.45em;letter-spacing:.2em;-webkit-text-fill-color:var(--mint);vertical-align:.6em}
+.sub{font-size:11px;letter-spacing:.32em;color:var(--muted);margin-top:7px}
+
+/* ---------- ステータス ---------- */
+.stats{position:fixed;right:max(18px,env(safe-area-inset-right));top:max(16px,env(safe-area-inset-top));width:262px;z-index:3;
+  padding:14px 16px 12px;border-radius:20px;background:var(--panel);border:1px solid var(--panel-line);
+  -webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4);
+  box-shadow:0 12px 40px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.07)}
+.who{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:8px}
+.who b{font-size:15px;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who span{font-family:'DotGothic16',monospace;font-size:12px;color:var(--muted);white-space:nowrap}
+.stat{display:grid;grid-template-columns:64px 1fr 28px;align-items:center;gap:8px;font-size:12px;margin:7px 0}
+.stat label{color:var(--muted);letter-spacing:.04em}
+.bar{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;width:50%;border-radius:inherit;
+  background:linear-gradient(90deg,var(--c1),var(--c2));box-shadow:0 0 12px var(--c2);transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.stat em{font-style:normal;font-family:'DotGothic16',monospace;text-align:right}
+.stat[data-k=hunger]{--c1:#ff9a5a;--c2:#ffd25a}
+.stat[data-k=mood]{--c1:#ff5d8f;--c2:#ff9ec0}
+.stat[data-k=clean]{--c1:#39b7ff;--c2:#4fe0c4}
+.stat.low label,.stat.low em{color:var(--danger)}
+.stat.low .bar i{--c1:#ff2d55;--c2:#ff6b81;animation:blink .8s infinite}
+@keyframes blink{50%{opacity:.35}}
+.weight{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;padding-top:9px;border-top:1px dashed var(--panel-line);font-size:12px;color:var(--muted)}
+.weight b{font-family:'DotGothic16',monospace;font-weight:400;font-size:17px;color:var(--ink);margin-left:6px}
+.tag{font-size:11px;padding:2px 10px;border-radius:99px;white-space:nowrap;background:rgba(79,224,196,.12);color:var(--mint);border:1px solid rgba(79,224,196,.35)}
+.tag.s1{background:rgba(255,210,90,.12);color:var(--yellow);border-color:rgba(255,210,90,.4)}
+.tag.s2{background:rgba(255,154,90,.14);color:#ffae7a;border-color:rgba(255,154,90,.45)}
+.tag.s3,.tag.s4{background:rgba(255,45,85,.18);color:#ff7d95;border-color:rgba(255,45,85,.55);animation:blink .7s infinite}
+.outs{margin-top:7px;font-size:11px;color:var(--dim);text-align:right;letter-spacing:.05em}
+.outs b{color:var(--pink);font-family:'DotGothic16',monospace;font-weight:400;font-size:14px;margin:0 2px}
+
+/* ---------- 操作ボタン ---------- */
+.controls{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:3;
+  display:flex;gap:10px;padding:8px;border-radius:999px;background:var(--panel);border:1px solid var(--panel-line);
+  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.act{--k:var(--pink);appearance:none;border:0;cursor:pointer;display:flex;align-items:center;gap:10px;
+  padding:8px 18px 8px 8px;border-radius:999px;color:var(--ink);background:rgba(255,255,255,.04);
+  font:700 14px 'Zen Maru Gothic',sans-serif;letter-spacing:.06em;white-space:nowrap;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);transition:transform .12s,background .2s}
+.act.b{--k:var(--mint)} .act.c{--k:var(--yellow)}
+.act .key{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none;
+  font:400 17px 'DotGothic16',monospace;color:#1a0f2a;
+  background:radial-gradient(circle at 35% 28%,#fff 0 9%,var(--k) 46%,color-mix(in srgb,var(--k) 62%,#000) 100%);
+  box-shadow:0 4px 0 color-mix(in srgb,var(--k) 40%,#000),0 0 18px color-mix(in srgb,var(--k) 45%,transparent);transition:transform .12s,box-shadow .12s}
+.act .t{display:flex;flex-direction:column;align-items:flex-start;line-height:1.2}
+.act .t small{font-size:10px;font-weight:500;color:var(--dim);letter-spacing:.1em}
+.act:hover{background:rgba(255,255,255,.09)}
+.act:active,.act.pressed{transform:translateY(2px)}
+.act:active .key,.act.pressed .key{transform:translateY(3px);box-shadow:0 1px 0 color-mix(in srgb,var(--k) 40%,#000),0 0 26px var(--k)}
+.act:focus-visible,.tool:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+.tools{position:fixed;left:max(18px,env(safe-area-inset-left));bottom:max(22px,env(safe-area-inset-bottom));z-index:3;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.tool{appearance:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;
+  font:700 12px 'Zen Maru Gothic',sans-serif;letter-spacing:.06em;color:var(--ink);white-space:nowrap;
+  background:var(--panel);border:1px solid var(--panel-line);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);transition:background .2s,border-color .2s}
+.tool:hover{background:rgba(60,34,100,.7);border-color:rgba(242,193,78,.5)}
+.tool svg{width:15px;height:15px;flex:none}
+.tool.primary{border-color:rgba(242,193,78,.55);color:#ffe7a8;box-shadow:0 0 18px rgba(242,193,78,.15)}
+.tool[hidden]{display:none}
+.hint{position:fixed;left:50%;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 74px);transform:translateX(-50%);z-index:2;
+  font-size:11px;color:var(--dim);letter-spacing:.14em;white-space:nowrap;pointer-events:none;transition:opacity 1.2s}
+.hint.hide{opacity:0}
+
+/* ---------- 吹き出し ---------- */
+.bubble{position:fixed;left:0;top:0;z-index:4;max-width:min(300px,80vw);width:max-content;padding:11px 16px 12px;border-radius:18px;
+  background:#fbf7ff;color:#2a1a45;font:400 15px/1.6 'DotGothic16',monospace;letter-spacing:.02em;
+  box-shadow:0 0 0 3px #2a1a45,0 0 0 6px rgba(242,193,78,.95),0 16px 36px rgba(0,0,0,.45);
+  opacity:0;transform:translate(-50%,-100%) scale(.8);transform-origin:var(--tx,50%) 100%;
+  transition:opacity .18s,transform .28s cubic-bezier(.3,1.7,.5,1);pointer-events:none;word-break:break-word}
+.bubble.show{opacity:1;transform:translate(-50%,-100%) scale(1)}
+.bubble::after{content:'';position:absolute;left:var(--tx,50%);bottom:-9px;width:14px;height:14px;background:#fbf7ff;
+  border-right:3px solid #2a1a45;border-bottom:3px solid #2a1a45;transform:translateX(-50%) rotate(45deg)}
+.bubble .who{display:block;margin:0 0 2px;font-size:10px;letter-spacing:.2em;color:#9a6fd6}
+
+/* ---------- ギリギリアウト演出 ---------- */
+.outfx{position:fixed;inset:0;z-index:6;pointer-events:none;display:grid;place-items:center;overflow:hidden;opacity:0;transition:opacity .15s}
+.outfx.on{opacity:1}
+.outfx .flash{position:absolute;inset:0;background:radial-gradient(circle,rgba(255,40,80,0) 35%,rgba(255,40,80,.5));animation:redpulse .3s infinite alternate}
+@keyframes redpulse{to{opacity:.35}}
+.tape{position:absolute;left:-10%;right:-10%;height:44px;display:flex;align-items:center;overflow:hidden;
+  background:repeating-linear-gradient(-45deg,#ffd25a 0 24px,#1a1026 24px 48px);box-shadow:0 0 30px rgba(255,210,90,.45)}
+.tape.top{top:13%;transform:rotate(-4deg)} .tape.bottom{bottom:19%;transform:rotate(3deg)}
+.tape span{flex:none;display:block;white-space:nowrap;padding:3px 18px;margin-left:10%;background:#1a1026;color:#ffd25a;font:400 18px 'DotGothic16',monospace;letter-spacing:.3em;animation:marquee 3s linear infinite}
+@keyframes marquee{to{transform:translateX(-40%)}}
+.stamp{position:relative;font:900 clamp(56px,13vw,150px)/.95 'Zen Maru Gothic',sans-serif;color:#fff;text-align:center;
+  -webkit-text-stroke:7px #ff2d55;paint-order:stroke fill;text-shadow:0 0 34px #ff2d55,0 9px 0 #7a0020;opacity:0}
+.outfx.on .stamp{animation:stamp .55s cubic-bezier(.2,1.8,.4,1) .12s forwards}
+@keyframes stamp{0%{transform:rotate(-8deg) scale(3.2);opacity:0}100%{transform:rotate(-8deg) scale(1);opacity:1}}
+body.shake #gl{animation:shake .09s infinite}
+@keyframes shake{25%{transform:translate(5px,-4px)}50%{transform:translate(-5px,3px)}75%{transform:translate(3px,5px)}}
+
+/* ---------- ドロップ・読み込み・トースト ---------- */
+.drop{position:fixed;inset:14px;z-index:9;border:3px dashed var(--gold);border-radius:30px;display:grid;place-items:center;text-align:center;
+  background:rgba(20,8,40,.74);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .2s}
+.drop.on{opacity:1}
+.drop p{font-size:15px;color:var(--muted);letter-spacing:.1em;line-height:2}
+.drop b{display:block;font-size:26px;color:#ffe7a8;letter-spacing:.08em}
+#loading{position:fixed;inset:0;z-index:20;display:grid;place-items:center;align-content:center;gap:22px;background:#07040f;transition:opacity .9s}
+#loading.done{opacity:0;pointer-events:none}
+#loading p{font:400 13px 'DotGothic16',monospace;color:var(--muted);letter-spacing:.2em;text-align:center;max-width:80vw;line-height:1.8}
+.egg-spin{width:56px;height:70px;border-radius:50% 50% 47% 47%/58% 58% 42% 42%;background:linear-gradient(135deg,#b69aff,#5b2d8e);
+  box-shadow:0 0 36px rgba(157,123,255,.6),inset -8px -10px 18px rgba(0,0,0,.3);animation:wob 1.1s infinite ease-in-out}
+@keyframes wob{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(10deg) translateY(-6px)}}
+.toast{position:fixed;left:50%;top:max(16px,env(safe-area-inset-top));z-index:12;transform:translate(-50%,-160%);transition:transform .35s cubic-bezier(.3,1.5,.5,1);
+  padding:10px 18px;border-radius:14px;background:#2a1450;border:1px solid rgba(242,193,78,.5);font-size:13px;box-shadow:0 12px 30px rgba(0,0,0,.4);max-width:90vw}
+.toast.on{transform:translate(-50%,0)}
+
+/* ---------- 遊び方 ---------- */
+.help{position:fixed;inset:0;z-index:11;display:none;place-items:center;background:rgba(6,3,12,.66);padding:18px}
+.help.on{display:grid}
+.help .card{width:min(420px,100%);max-height:86vh;overflow:auto;padding:24px 24px 20px;border-radius:22px;background:linear-gradient(170deg,#2a1450,#150a26);border:1px solid rgba(242,193,78,.4);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.help h2{font-size:18px;color:#ffe7a8;letter-spacing:.1em;margin-bottom:12px}
+.help ul{list-style:none;display:grid;gap:9px;font-size:13px;line-height:1.7;color:#e6dcfa}
+.help li b{color:var(--gold)}
+.help .row{display:flex;gap:10px;justify-content:space-between;margin-top:18px;flex-wrap:wrap}
+.help .danger{color:#ff9aaa;border-color:rgba(255,77,109,.45)}
+
+/* ---------- スマホ ---------- */
+@media (max-width:720px){
+  .brand{left:14px;top:max(10px,env(safe-area-inset-top))}
+  .logo{font-size:16px}
+  .sub{font-size:9px;margin-top:5px;letter-spacing:.24em}
+  .stats{left:10px;right:10px;width:auto;top:calc(max(10px,env(safe-area-inset-top)) + 40px);padding:9px 12px 8px;border-radius:16px;
+    display:grid;grid-template-columns:1fr 1fr;column-gap:14px}
+  .who{grid-column:1/-1;margin-bottom:2px}
+  .who b{font-size:13px}
+  .stat{grid-template-columns:48px 1fr 24px;gap:6px;margin:4px 0;font-size:11px}
+  .weight{margin-top:4px;padding-top:4px;border-top:0;font-size:11px}
+  .weight b{font-size:14px}
+  .outs{margin-top:4px;align-self:center}
+  .controls{gap:6px;padding:6px;bottom:max(12px,env(safe-area-inset-bottom))}
+  .act{padding:6px 12px 6px 6px;gap:7px;font-size:13px}
+  .act .key{width:34px;height:34px;font-size:15px}
+  .act .t small{display:none}
+  .tools{left:50%;transform:translateX(-50%);flex-direction:row;flex-wrap:wrap;justify-content:center;gap:6px;width:calc(100% - 20px);bottom:calc(max(12px,env(safe-area-inset-bottom)) + 60px)}
+  #soundLabel,#helpBtn .lbl{display:none}
+  .tool{padding:6px 11px;font-size:11px}
+  .hint{display:none}
+}
+@media (max-width:370px){ .act .t span{font-size:12px} .act{padding-right:9px} }
+@media (prefers-reduced-motion:reduce){ body.shake #gl{animation:none} .stat.low .bar i,.tag.s3,.tag.s4{animation:none} }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="gl" tabindex="-1" aria-label="3Dたまごっち本体。ドラッグで回転、キャラをタップで反応します"></canvas>
+<div class="scan" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+
+<header class="brand">
+  <div class="logo">KINTAMAGOTCHI<small>3D</small></div>
+  <div class="sub">食卓の魔王ロマ子様 育成機</div>
+</header>
+
+<section class="stats" id="stats" aria-label="ステータス">
+  <div class="who"><b id="charName">ロマ子様</b><span id="age">1日目</span></div>
+  <div class="stat" data-k="hunger"><label>まんぷく</label><div class="bar"><i></i></div><em>0</em></div>
+  <div class="stat" data-k="mood"><label>ごきげん</label><div class="bar"><i></i></div><em>0</em></div>
+  <div class="stat" data-k="clean"><label>せいけつ</label><div class="bar"><i></i></div><em>0</em></div>
+  <div class="weight"><span>体重<b id="kg">0kg</b></span><span class="tag" id="bodyTag">スレンダー</span></div>
+  <div class="outs">ギリギリアウト<b id="outs">0</b>回</div>
+</section>
+
+<div class="bubble" id="bubble" role="status" aria-live="polite"></div>
+
+<nav class="controls" aria-label="お世話ボタン">
+  <button class="act a" data-btn="0" aria-label="Aボタン：ごはん"><span class="key">A</span><span class="t"><span>ごはん</span><small>FEED</small></span></button>
+  <button class="act b" data-btn="1" aria-label="Bボタン：あそぶ"><span class="key">B</span><span class="t"><span>あそぶ</span><small>PLAY</small></span></button>
+  <button class="act c" data-btn="2" aria-label="Cボタン：おそうじ"><span class="key">C</span><span class="t"><span>おそうじ</span><small>CLEAN</small></span></button>
+</nav>
+
+<div class="tools">
+  <label class="tool primary" for="file" tabindex="0" id="fileLabel">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.4 5 5.6.8-4 3.9.9 5.6L12 15.7 7.1 18.3l.9-5.6-4-3.9 5.6-.8z"/></svg>
+    画像で召喚
+  </label>
+  <input type="file" id="file" accept="image/*" hidden>
+  <button class="tool" id="revert" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+    ロマ子様に戻す
+  </button>
+  <button class="tool" id="sound" aria-pressed="false" aria-label="音のオン・オフ">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4z"/><path id="soundWave" d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12" opacity=".3"/></svg>
+    <span id="soundLabel">音 OFF</span>
+  </button>
+  <button class="tool" id="helpBtn" aria-label="遊び方">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>
+    <span class="lbl">遊び方</span>
+  </button>
+</div>
+<div class="hint" id="hint">ドラッグで360°回転 ／ 筐体のボタンも押せる ／ キャラをつつく ／ 画像をドロップで召喚</div>
+
+<div class="outfx" id="outfx" aria-hidden="true">
+  <div class="flash"></div>
+  <div class="tape top"><span>WARNING ギリギリアウト WARNING ギリギリアウト WARNING ギリギリアウト WARNING ギリギリアウト</span></div>
+  <div class="stamp">ギリギリ<br>アウト！</div>
+  <div class="tape bottom"><span>OVER CAPACITY 画面に収まりません OVER CAPACITY 画面に収まりません OVER CAPACITY</span></div>
+</div>
+
+<div class="drop" id="drop"><p><b>ここに画像をドロップ</b>自分だけのマスコットを召喚します<br>（Xのアイコンなど・PNG / JPG / WebP）</p></div>
+
+<div class="help" id="help" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="card">
+    <h2 id="helpTitle">遊び方</h2>
+    <ul>
+      <li><b>A ごはん</b>…だんごやおにぎりを献上。まんぷくが上がる。<br>満腹なのにあげ続けると、風船のように<b>ふくらむ</b>。</li>
+      <li><b>B あそぶ</b>…跳ねて喜ぶ。ごきげんが上がり、カロリーを消費して<b>スリムに戻る</b>。</li>
+      <li><b>C おそうじ</b>…うんちを水で流す。せいけつが回復。</li>
+      <li>ふくらみが限界を超えると……<b>ギリギリアウト！</b></li>
+      <li>筐体はドラッグで360°回転、ホイール／ピンチでズーム。キャラをタップするとつつけます。</li>
+      <li><b>画像で召喚</b>…手持ちの画像（アイコンなど）をドロップ・選択・貼り付けすると、ロマ子様の魂が宿った自分だけのマスコットになります。画像はこの端末の中だけで使われ、どこにも送信されません。</li>
+      <li>キーボード：<b>A / B / C</b> または <b>1 / 2 / 3</b></li>
+    </ul>
+    <div class="row">
+      <button class="tool danger" id="resetBtn">データをリセット</button>
+      <button class="tool primary" id="helpClose">とじる</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="alert"></div>
+<div id="loading"><div class="egg-spin"></div><p id="loadMsg">ロマ子様を召喚中…</p></div>
+
+<script>
+/* 3Dライブラリの読み込みに失敗したときの案内（モジュールより先に動く保険） */
+window.__booted = false;
+setTimeout(function(){
+  if(window.__booted) return;
+  var m = document.getElementById('loadMsg');
+  if(m) m.innerHTML = '読み込みに時間がかかっています…<br>Three.js をネットから読み込むため、オンラインで開いてね。';
+}, 12000);
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+/* =====================================================================
+   0. 小道具
+   ===================================================================== */
+const PI = Math.PI, TAU = PI * 2;
+const V3 = THREE.Vector3;
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = a => a[(Math.random() * a.length) | 0];
+const damp = (a, b, l, dt) => a + (b - a) * (1 - Math.exp(-l * dt));
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const Ease = {
+  lin: t => t,
+  outCubic: t => 1 - (1 - t) ** 3,
+  inCubic: t => t * t * t,
+  inOut: t => t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2,
+  outBack: t => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2; },
+  outElastic: t => t === 0 || t === 1 ? t : 2 ** (-10 * t) * Math.sin((t * 10 - .75) * (TAU / 3)) + 1,
+};
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* トゥイーン：await できる小さなアニメーション管理 */
+const tweens = new Set();
+function tween(dur, fn, ease = Ease.lin) {
+  return new Promise(res => tweens.add({ t: 0, dur: Math.max(dur, 1e-4), fn, ease, res }));
+}
+const wait = s => tween(s, () => {});
+function updateTweens(dt) {
+  for (const tw of tweens) {
+    tw.t += dt;
+    const p = Math.min(1, tw.t / tw.dur);
+    tw.fn(tw.ease(p), p);
+    if (p >= 1) { tweens.delete(tw); tw.res(); }
+  }
+}
+
+/* =====================================================================
+   1. セーブデータ
+   ===================================================================== */
+const KEY = 'kintamagotchi-3d-v1';
+const RATE = { hunger: .03, mood: .022, fat: .00012, dirt: .06 };   // 1秒あたりの変化
+const fresh = () => ({
+  hunger: 72, mood: 70, clean: 100, fat: .12, poops: 0,
+  born: Date.now(), last: Date.now(), outs: 0, sound: false, custom: null, fatStage: 0,
+});
+let S = fresh();
+let storeOK = true;
+function fatStageOf(f) { return f >= 1 ? 4 : f >= .8 ? 3 : f >= .55 ? 2 : f >= .3 ? 1 : 0; }
+function loadState() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) S = Object.assign(fresh(), JSON.parse(raw));
+  } catch (e) { storeOK = false; }
+  return applyAway();
+}
+// 離れていた間の時間経過（最大8時間ぶん）。戻り値は経過秒数
+function applyAway() {
+  const el = clamp((Date.now() - S.last) / 1000, 0, 8 * 3600);
+  S.last = Date.now();
+  S.hunger = clamp(S.hunger - el * RATE.hunger, 0, 100);
+  S.mood = clamp(S.mood - el * RATE.mood, 0, 100);
+  S.fat = clamp(Math.min(S.fat, .95) - el * RATE.fat, 0, 1);
+  const add = Math.min(3 - S.poops, Math.floor(el / 240));
+  if (add > 0) S.poops += add;
+  S.clean = clamp(S.clean - el * RATE.dirt * S.poops * .2, 0, 100);
+  S.fatStage = fatStageOf(S.fat);
+  return el;
+}
+let resetting = false;
+function saveState() {
+  if (resetting) return;   // リセット中は閉じ際の自動保存で書き戻さない
+  S.last = Date.now();
+  if (!storeOK) return;
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch (e) {
+    // 画像が大きすぎて保存できない場合は、画像抜きで保存
+    try { localStorage.setItem(KEY, JSON.stringify({ ...S, custom: null })); } catch (e2) { storeOK = false; }
+  }
+}
+
+/* =====================================================================
+   2. セリフ（ロマ子様の口調）
+   ===================================================================== */
+const L = {
+  welcome: {
+    morning: ['早起きとは見どころある愚民だじょ！朝ごはん（だんご）を寄越しなさい！', 'おはようだじょ愚民！魔王の朝は献上品から始まるのだわわ(^～^)'],
+    day: ['よく来たな愚民！ちょうど腹が減ってただじょ(^～^)', '遅ぇぞ愚民！どこほっつき歩いてただじょ！'],
+    evening: ['晩ごはんの時間だじょ！食卓の魔王をもてなしなさい！', '今日も一日ようやったな愚民！ご褒美にお世話させてやんよ！'],
+    night: ['こんな時間まで起きてんじゃねぇ！…夜食なら付き合ってやんよ。', '夜更かし愚民め…だんご一本で許してやるのだわわ。'],
+  },
+  feed: [
+    '愚民、もっとだんごを寄越しなさい(^～^)',
+    'んむ！！{FOOD}は正義なのだわわ！',
+    'ふん、まぁまぁの献上品だじょ。食ってやんよ！',
+    'タダ飯じゃねぇぞ、感謝しろだじょ！',
+    'う、うめぇ…！べ、別に喜んでねぇかんな！',
+    '食卓の魔王に捧げる供物としては…合格なのだわわ！',
+  ],
+  overfeed: [
+    '太ったんじゃないわ、魔力が増したのよ！',
+    'まだ入るのだわわ(^～^) 魔王の胃袋は異次元だじょ！',
+    'ロマ子様を太らせてどうする気だ愚民！…でもおかわり。',
+    '{FOOD}は飲み物なのだわわ！',
+  ],
+  fatUp: [null,
+    '…ちょっと制服がキツいのだわわ。気のせいだじょ。',
+    'これは…魔力の膨張だじょ！！決して脂肪ではない！！',
+    'や、やべぇ…画面がキツいのだわわ…！これ以上はダメだじょ！！',
+  ],
+  slim: ['ふふん、魔王のスレンダーボディ復活だじょ！', '見なさい愚民、この完璧なくびれを(^～^)'],
+  play: [
+    'へーんだ！魔王の跳躍を見よだじょ！',
+    'ぴょーん！…べ、別に楽しくなんかねぇかんな！',
+    '運動？魔王に汗をかかせるとはいい度胸なのだわわ！',
+    'んむ！！脂肪…じゃなくて魔力が燃えていくだじょ！',
+  ],
+  playHeavy: ['お、重い…！重力が魔王に逆らってるだじょ…！', 'ぜぇ…ぜぇ…これは…戦略的休憩なのだわわ…', 'ぷるんぷるんしてるのは…魔力の波動だじょ…！'],
+  playRefuse: ['腹ペコで跳べるか愚民！先にだんごだじょ！！', 'エネルギー切れなのだわわ…ごはんが先だじょ…'],
+  clean: ['ようやく気付いたか。愚民のくせにやるじゃねぇか！', 'んむ！！魔王の城はこうでなくちゃな！', 'ピッカピカだじょ！褒めてつかわす(^～^)'],
+  cleanNone: ['何も落ちてねぇのに掃除とは…潔癖な愚民なのだわわ。', 'チリひとつない城を磨くとは…忠誠心だけは認めてやんよ。'],
+  poop: ['…み、見るな！！魔王だって出すもんは出すのだわわ！', '流しておきなさい、愚民。今すぐ。', 'こ、これは魔力の結晶だじょ！…臭くなんかねぇ！'],
+  idle: [
+    'んむ！！今日もロマ子様は完璧だじょ！',
+    '食卓の魔王は今日もおなかが空いているのだわわ',
+    '地上波…いつか絶対出てやんだかんな…！',
+    '愚民、ちっとは成長したかだじょ？',
+    'へーんだ！ロマ子様は今日も無敵だじょ！',
+    'くるくる回して見てんじゃねぇ！…背中も美しいけどな(^～^)',
+  ],
+  hungry: ['腹減っただじょ！！魔王を飢えさせる気か愚民！', 'だんご…だんごはまだか…（ぐぅ〜）', '腹の音が罵倒より大きくなっちまうだろ！！早くしろ！'],
+  bored: ['かまえよ愚民！魔王が退屈で干からびたらどうすんだ！', 'ヒマだじょ〜！！跳ねさせろや！！'],
+  dirty: ['城が臭うだじょ！魔王をブタ小屋に住まわせる気か！', 'おそうじボタンの場所も忘れたのか愚民！？'],
+  fatIdle: ['…なんか画面が狭くなった気がするのだわわ', 'ちょ、ちょっとだけ運動してやってもいいじょ…？'],
+  poke: ['おい！気安く触んじゃねぇ！', 'な、撫でていいとは言ってねぇだじょ！', '……ふん、今日だけ特別だかんな。', 'くすぐってぇだじょ！'],
+  pokeFat: ['つ、つつくな！ぷるんってなるだろうが！！', '魔力がこぼれる！！やめなさい愚民！！'],
+  pokeRage: ['しっつけぇんだよ！！愚民の分際で！！', 'べたべた触んな！！出荷すんぞ！！'],
+  out: 'ギ…ギリギリ…アウトだじょーーーー！！！',
+  afterOut: ['…い、今のは見なかったことにしなさい愚民。いいわね？', 'ぷしゅ〜…魔力を放出しただけだじょ。計算通りなのだわわ(^～^)'],
+  summon: ['な、なんだこの器は…！？…ふん、悪くねぇ。ロマ子様の魂、宿ってやんよ！', 'この姿でも魔王は魔王なのだわわ！ひれ伏せ愚民(^～^)'],
+  revert: ['やっぱりこの姿が一番なのだわわ！', 'おかえり、ワタシ。…じゃなくて！ひれ伏せ愚民！'],
+  busy: ['待ちなさい愚民！魔王は今いそがしいのだわわ！'],
+};
+const FOOD_NAME = { dango: 'だんご', onigiri: 'おにぎり' };
+
+/* =====================================================================
+   3. サウンド（Web Audio でピコピコ音を生成。初期はOFF）
+   ===================================================================== */
+const Sound = (() => {
+  let ac = null, out = null, noiseBuf = null, on = false;
+  function ensure() {
+    if (!ac) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      ac = new AC();
+      out = ac.createGain(); out.gain.value = .32; out.connect(ac.destination);
+      noiseBuf = ac.createBuffer(1, ac.sampleRate * 1.6, ac.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    if (ac.state === 'suspended') ac.resume();
+    return true;
+  }
+  function tone(f, at, dur, { type = 'square', vol = .2, to = null } = {}) {
+    const t = ac.currentTime + at;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+    g.gain.setValueAtTime(.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + .012);
+    g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g).connect(out); o.start(t); o.stop(t + dur + .05);
+  }
+  function noise(at, dur, { vol = .2, f0 = 800, f1 = 3000, q = 1, type = 'bandpass' } = {}) {
+    const t = ac.currentTime + at;
+    const s = ac.createBufferSource(); s.buffer = noiseBuf;
+    const bq = ac.createBiquadFilter(); bq.type = type; bq.Q.value = q;
+    bq.frequency.setValueAtTime(f0, t); bq.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .03); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    s.connect(bq).connect(g).connect(out); s.start(t); s.stop(t + dur + .05);
+  }
+  const N = m => 440 * 2 ** ((m - 69) / 12);
+  const FX = {
+    click: () => tone(1400, 0, .04, { vol: .1 }),
+    drop: () => tone(900, 0, .25, { type: 'triangle', to: 300, vol: .18 }),
+    chomp: () => { tone(260, 0, .07, { to: 140, vol: .15 }); noise(0, .06, { vol: .07, f0: 1200, f1: 600 }); },
+    happy: () => [72, 76, 79, 84].forEach((m, i) => tone(N(m), i * .07, .14, { vol: .12 })),
+    jump: () => tone(330, 0, .2, { to: 880, vol: .12 }),
+    land: () => tone(140, 0, .12, { type: 'sine', to: 60, vol: .3 }),
+    boing: () => tone(200, 0, .3, { type: 'sine', to: 520, vol: .25 }),
+    poop: () => tone(160, 0, .35, { type: 'sawtooth', to: 70, vol: .1 }),
+    flush: () => { noise(0, 1.3, { vol: .26, f0: 400, f1: 2500, q: .7 }); tone(500, .1, .6, { type: 'sine', to: 200, vol: .07 }); },
+    sparkle: () => [88, 91, 96].forEach((m, i) => tone(N(m), i * .05, .12, { type: 'triangle', vol: .09 })),
+    alarm: () => { for (let i = 0; i < 6; i++) tone(i % 2 ? 880 : 660, i * .16, .14, { vol: .12 }); },
+    glass: () => { noise(0, .5, { vol: .32, f0: 6000, f1: 2500, q: .5, type: 'highpass' }); for (let i = 0; i < 6; i++) tone(rand(2500, 5000), rand(0, .25), .12, { type: 'triangle', vol: .05 }); },
+    deflate: () => { tone(900, 0, 1.5, { type: 'sawtooth', to: 90, vol: .08 }); noise(0, 1.5, { vol: .1, f0: 3000, f1: 500 }); },
+    summon: () => [60, 64, 67, 72, 76, 79, 84].forEach((m, i) => tone(N(m), i * .06, .3, { type: 'triangle', vol: .1 })),
+    beep: () => { tone(1800, 0, .08, { vol: .08 }); tone(1800, .14, .08, { vol: .08 }); },
+    type: () => tone(rand(700, 900), 0, .025, { vol: .03 }),
+    whoosh: () => noise(0, .35, { vol: .14, f0: 300, f1: 2000 }),
+  };
+  return {
+    play(n) { if (!on || !ensure()) return; try { FX[n] && FX[n](); } catch (e) {} },
+    setOn(v) { on = v; if (v) ensure(); },
+    get on() { return on; },
+  };
+})();
+
+/* =====================================================================
+   4. Canvas テクスチャ工房
+   ===================================================================== */
+const C = {
+  shell: '#6d42c8', gold: '#f2c14e', skin: '#f8dcca', hair: '#4a4a9d', hairDark: '#34347a',
+  dress: '#8fd3f4', check: '#ffc0cb', red: '#e0304a', white: '#fdf8ff', shoe: '#2a2430',
+};
+function canvasTex(w, h, draw, { srgb = true } = {}) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  draw(g, w, h);
+  const t = new THREE.CanvasTexture(c);
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  t.userData.canvas = c; t.userData.g = g;
+  return t;
+}
+function ell(g, x, y, rx, ry, rot = 0) { g.beginPath(); g.ellipse(x, y, rx, ry, rot, 0, TAU); g.fill(); }
+function heartPath(g, x, y, s) {
+  g.beginPath();
+  g.moveTo(x, y + s * .9);
+  g.bezierCurveTo(x - s * 1.2, y + s * .1, x - s * .7, y - s * .9, x, y - s * .35);
+  g.bezierCurveTo(x + s * .7, y - s * .9, x + s * 1.2, y + s * .1, x, y + s * .9);
+  g.closePath();
+}
+function starPath(g, x, y, r1, r2, n = 5, rot = -PI / 2) {
+  g.beginPath();
+  for (let i = 0; i < n * 2; i++) {
+    const r = i % 2 ? r2 : r1, a = rot + i * PI / n;
+    g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+  }
+  g.closePath();
+}
+function sparklePath(g, x, y, r) {
+  g.beginPath();
+  g.moveTo(x, y - r);
+  g.quadraticCurveTo(x, y, x + r, y); g.quadraticCurveTo(x, y, x, y + r);
+  g.quadraticCurveTo(x, y, x - r, y); g.quadraticCurveTo(x, y, x, y - r);
+  g.closePath();
+}
+function dropPath(g, x, y, s) {
+  g.beginPath();
+  g.moveTo(x, y - s);
+  g.bezierCurveTo(x + s * .9, y - s * .1, x + s * .7, y + s * .8, x, y + s * .8);
+  g.bezierCurveTo(x - s * .7, y + s * .8, x - s * .9, y - s * .1, x, y - s);
+  g.closePath();
+}
+// 決まった乱数（毎回同じ模様にするため）
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+/* スプライト（ハート・キラキラなど） */
+function sprTex(draw) { return canvasTex(128, 128, g => { g.translate(64, 64); draw(g); }); }
+let SPR = null;
+function buildSprites() {
+  SPR = {
+    heart: sprTex(g => { g.shadowColor = '#ff9ec0'; g.shadowBlur = 14; g.fillStyle = '#ff5d8f'; heartPath(g, 0, 2, 44); g.fill(); g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.75)'; ell(g, -17, -12, 9, 6, -.6); }),
+    sparkle: sprTex(g => { const gr = g.createRadialGradient(0, 0, 0, 0, 0, 60); gr.addColorStop(0, 'rgba(255,240,180,.9)'); gr.addColorStop(1, 'rgba(255,240,180,0)'); g.fillStyle = gr; g.fillRect(-64, -64, 128, 128); g.fillStyle = '#fffbe6'; sparklePath(g, 0, 0, 52); g.fill(); }),
+    star: sprTex(g => { g.shadowColor = '#ffd25a'; g.shadowBlur = 16; g.fillStyle = '#ffd25a'; starPath(g, 0, 0, 50, 22); g.fill(); g.shadowBlur = 0; g.fillStyle = '#fff3c4'; starPath(g, -4, -4, 22, 10); g.fill(); }),
+    note: sprTex(g => { g.font = '900 88px "Zen Maru Gothic",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = '#4fe0c4'; g.shadowBlur = 12; g.fillStyle = '#4fe0c4'; g.fillText('♪', 0, 6); }),
+    drop: sprTex(g => { g.fillStyle = '#8fdcff'; g.strokeStyle = '#2a6f9e'; g.lineWidth = 5; dropPath(g, 0, 0, 44); g.fill(); g.stroke(); g.fillStyle = 'rgba(255,255,255,.8)'; ell(g, -12, 4, 7, 12, .3); }),
+    bubble: sprTex(g => { g.strokeStyle = 'rgba(210,248,255,.95)'; g.lineWidth = 6; g.beginPath(); g.arc(0, 0, 46, 0, TAU); g.stroke(); g.fillStyle = 'rgba(160,230,255,.18)'; ell(g, 0, 0, 44, 44); g.fillStyle = 'rgba(255,255,255,.9)'; ell(g, -18, -18, 10, 7, -.7); }),
+    anger: sprTex(g => { g.strokeStyle = '#ff3b5c'; g.lineWidth = 13; g.lineCap = 'round'; for (let i = 0; i < 4; i++) { g.save(); g.rotate(i * PI / 2); g.beginPath(); g.moveTo(12, -40); g.quadraticCurveTo(12, -12, 40, -12); g.stroke(); g.restore(); } }),
+    stink: sprTex(g => { g.strokeStyle = 'rgba(150,190,120,.85)'; g.lineWidth = 9; g.lineCap = 'round'; g.beginPath(); for (let y = 50; y >= -50; y -= 4) g.lineTo(Math.sin(y * .09) * 16, y); g.stroke(); }),
+    crumb: sprTex(g => { g.fillStyle = '#f3d9a6'; ell(g, 0, 0, 30, 26); g.fillStyle = 'rgba(255,255,255,.6)'; ell(g, -9, -9, 8, 6); }),
+    puff: sprTex(g => { const gr = g.createRadialGradient(0, 0, 0, 0, 0, 62); gr.addColorStop(0, 'rgba(255,255,255,.95)'); gr.addColorStop(.5, 'rgba(240,230,255,.55)'); gr.addColorStop(1, 'rgba(240,230,255,0)'); g.fillStyle = gr; g.fillRect(-64, -64, 128, 128); }),
+    bang: sprTex(g => { g.font = '900 86px "Zen Maru Gothic",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 12; g.strokeStyle = '#2a1a45'; g.strokeText('!!', 0, 6); g.fillStyle = '#ffd25a'; g.fillText('!!', 0, 6); }),
+  };
+}
+
+/* =====================================================================
+   5. レンダラー・シーン・背景
+   ===================================================================== */
+const canvas = $('#gl');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  $('#loadMsg').textContent = 'このブラウザでは3D表示（WebGL）が使えないみたい…';
+  throw e;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.NeutralToneMapping ?? THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = .98;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x0b0616, .03);
+const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, .1, 220);
+camera.position.set(0, .3, 12);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture;
+scene.environmentIntensity = .5;
+
+// ライト
+scene.add(new THREE.HemisphereLight(0xc9b6ff, 0x1a0b2e, .45));
+const key = new THREE.DirectionalLight(0xfff0e6, 1.7);
+key.position.set(3, 6, 5);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+Object.assign(key.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 20 });
+key.shadow.bias = -.0005; key.shadow.normalBias = .02; key.shadow.radius = 5;
+scene.add(key);
+const rimPink = new THREE.DirectionalLight(0xff5fa2, 1.3); rimPink.position.set(-5, 1.5, -3); scene.add(rimPink);
+const rimCyan = new THREE.DirectionalLight(0x4de1ff, 1.1); rimCyan.position.set(5, .5, -4); scene.add(rimCyan);
+
+// 空（グラデーション＋地平線の光）
+const sky = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 16), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `varying vec3 vDir;
+    void main(){
+      float h = vDir.y;
+      vec3 top = vec3(.008,.004,.02), mid = vec3(.05,.018,.12), hor = vec3(.36,.07,.34);
+      vec3 c = mix(mid, top, smoothstep(0.0, .65, h));
+      c = mix(c, hor, exp(-abs(h + .06) * 8.0) * .55);
+      c += vec3(.03,.16,.2) * exp(-abs(h + .06) * 32.0) * .5;
+      gl_FragColor = vec4(c, 1.0);
+    }`,
+}));
+scene.add(sky);
+
+// シンセウェーブ風の床グリッド
+const FLOOR = -2.78;
+const gridMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+  uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(0xb65cff) } },
+  vertexShader: `varying vec3 vPos; void main(){ vPos = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `varying vec3 vPos; uniform float uTime; uniform vec3 uColor;
+    void main(){
+      vec2 p = vec2(vPos.x, vPos.y + uTime * .45) * .75;
+      vec2 g = abs(fract(p - .5) - .5) / fwidth(p);
+      float line = 1.0 - min(min(g.x, g.y), 1.0);
+      float d = length(vPos.xy);
+      float fade = smoothstep(26.0, 3.0, d) * smoothstep(0.0, 2.2, d);
+      gl_FragColor = vec4(uColor * line * fade * .8, 1.0);
+    }`,
+});
+const grid = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), gridMat);
+grid.rotation.x = -PI / 2; grid.position.y = FLOOR - .02;
+scene.add(grid);
+const shadowFloor = new THREE.Mesh(new THREE.CircleGeometry(7, 48), new THREE.ShadowMaterial({ opacity: .38 }));
+shadowFloor.rotation.x = -PI / 2; shadowFloor.position.y = FLOOR; shadowFloor.receiveShadow = true;
+scene.add(shadowFloor);
+const haloRing = new THREE.Mesh(new THREE.RingGeometry(1.75, 1.82, 96), new THREE.MeshBasicMaterial({ color: 0xff6bb5, transparent: true, opacity: .6, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+haloRing.rotation.x = -PI / 2; haloRing.position.y = FLOOR + .01;
+scene.add(haloRing);
+const haloRing2 = haloRing.clone(); haloRing2.material = haloRing.material.clone(); haloRing2.material.color.set(0x4fe0ff);
+haloRing2.scale.setScalar(1.25); scene.add(haloRing2);
+
+// 星くず
+{
+  const n = 700, pos = new Float32Array(n * 3), rnd = mulberry(7);
+  for (let i = 0; i < n; i++) {
+    const th = rnd() * TAU, ph = Math.acos(rnd() * 1.6 - .6), r = 45 + rnd() * 40;
+    pos.set([Math.sin(ph) * Math.cos(th) * r, Math.cos(ph) * r, Math.sin(ph) * Math.sin(th) * r], i * 3);
+  }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const dot = canvasTex(32, 32, g => { const gr = g.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, '#fff'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 32, 32); });
+  const stars = new THREE.Points(geo, new THREE.PointsMaterial({ size: .55, map: dot, transparent: true, depthWrite: false, color: 0xe6d8ff, fog: false, blending: THREE.AdditiveBlending }));
+  stars.name = 'stars';
+  scene.add(stars);
+}
+// 漂う光の玉
+const orbs = [];
+[[0xff6bb5, 5.5, .0], [0x4fe0ff, 6.5, 2.1], [0xffd25a, 7.5, 4.2], [0xb68cff, 5, 1.1], [0xff6bb5, 8, 3.3]].forEach(([c, r, ph], i) => {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(.07 + i * .015, 16, 12), new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(2.2), fog: false }));
+  m.userData = { r, ph, sp: .12 + i * .03, y: rand(-1.5, 2.5) };
+  orbs.push(m); scene.add(m);
+});
+
+// ポストプロセス（ほんのりブルーム）
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), .32, .5, .95);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+/* =====================================================================
+   6. 筐体（たまごっち本体）
+   ===================================================================== */
+const EGG = { rx: 1.6, ry: 1.95 };
+const WIN = { cx: 0, cy: .36, w: 1.96, h: 1.6, r: .34 };
+const FRONT_Z = .4;
+const FLOOR_Y = WIN.cy - WIN.h / 2 + .13;   // 画面の中の床
+const BTN = [
+  { x: -.62, y: -1.02, col: '#ff6b9a', label: 'A ごはん' },
+  { x: 0, y: -1.16, col: '#4fe0c4', label: 'B あそぶ' },
+  { x: .62, y: -1.02, col: '#ffd25a', label: 'C おそうじ' },
+];
+
+function eggShape() {
+  const s = new THREE.Shape(), N = 160;
+  for (let i = 0; i < N; i++) {
+    const t = i / N * TAU;
+    const x = EGG.rx * Math.cos(t) * (1 - .1 * Math.sin(t));
+    const y = EGG.ry * Math.sin(t);
+    i ? s.lineTo(x, y) : s.moveTo(x, y);
+  }
+  s.closePath();
+  return s;
+}
+function roundRect(P, cx, cy, w, h, r) {
+  const x0 = cx - w / 2, x1 = cx + w / 2, y0 = cy - h / 2, y1 = cy + h / 2;
+  P.moveTo(x0 + r, y0); P.lineTo(x1 - r, y0); P.absarc(x1 - r, y0 + r, r, -PI / 2, 0, false);
+  P.lineTo(x1, y1 - r); P.absarc(x1 - r, y1 - r, r, 0, PI / 2, false);
+  P.lineTo(x0 + r, y1); P.absarc(x0 + r, y1 - r, r, PI / 2, PI, false);
+  P.lineTo(x0, y0 + r); P.absarc(x0 + r, y0 + r, r, PI, PI * 1.5, false);
+  return P;
+}
+const winPath = (e = 0, Cls = THREE.Path) => roundRect(new Cls(), WIN.cx, WIN.cy, WIN.w + e * 2, WIN.h + e * 2, WIN.r + e);
+function setWinUV(tex) {
+  tex.repeat.set(1 / WIN.w, 1 / WIN.h);
+  tex.offset.set(-(WIN.cx - WIN.w / 2) / WIN.w, -(WIN.cy - WIN.h / 2) / WIN.h);
+  return tex;
+}
+
+/* ExtrudeGeometry は面ごとの法線でカクつくので、位置が同じ頂点の法線を平均してつるつるにする */
+function smoothNormals(geo) {
+  const pos = geo.attributes.position, n = pos.count, acc = new Map();
+  const a = new V3(), b = new V3(), c = new V3(), cb = new V3(), ab = new V3();
+  const keyOf = i => `${Math.round(pos.getX(i) * 1e4)}|${Math.round(pos.getY(i) * 1e4)}|${Math.round(pos.getZ(i) * 1e4)}`;
+  const keys = new Array(n);
+  for (let i = 0; i < n; i++) keys[i] = keyOf(i);
+  for (let i = 0; i < n; i += 3) {
+    a.fromBufferAttribute(pos, i); b.fromBufferAttribute(pos, i + 1); c.fromBufferAttribute(pos, i + 2);
+    cb.subVectors(c, b); ab.subVectors(a, b); cb.cross(ab);
+    for (let k = 0; k < 3; k++) {
+      let v = acc.get(keys[i + k]); if (!v) { v = new V3(); acc.set(keys[i + k], v); }
+      v.add(cb);
+    }
+  }
+  const nrm = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { const v = acc.get(keys[i]).clone().normalize(); nrm[i * 3] = v.x; nrm[i * 3 + 1] = v.y; nrm[i * 3 + 2] = v.z; }
+  geo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+  return geo;
+}
+
+/* 画面の穴の内壁だけ別マテリアル（番号2）に分ける。暗い内壁にして画面を引き締める */
+function splitInnerWalls(geo) {
+  const inWin = (x, y) => Math.abs(x - WIN.cx) < WIN.w / 2 + .02 && Math.abs(y - WIN.cy) < WIN.h / 2 + .02;
+  const pos = geo.attributes.position, buckets = [[], [], []];
+  for (const gr of geo.groups) {
+    for (let i = gr.start; i < gr.start + gr.count; i += 3) {
+      let m = gr.materialIndex;
+      if (m === 1) {
+        const cx = (pos.getX(i) + pos.getX(i + 1) + pos.getX(i + 2)) / 3, cy = (pos.getY(i) + pos.getY(i + 1) + pos.getY(i + 2)) / 3;
+        if (inWin(cx, cy)) m = 2;
+      }
+      buckets[m].push(i);
+    }
+  }
+  for (const name of ['position', 'normal', 'uv']) {
+    const a = geo.attributes[name], n = a.itemSize, out = new Float32Array(a.array.length);
+    let k = 0;
+    for (const b of buckets) for (const i of b) for (let v = 0; v < 3; v++) for (let c = 0; c < n; c++) out[k++] = a.array[(i + v) * n + c];
+    geo.setAttribute(name, new THREE.BufferAttribute(out, n));
+  }
+  geo.clearGroups();
+  let start = 0;
+  buckets.forEach((b, m) => { geo.addGroup(start, b.length * 3, m); start += b.length * 3; });
+  return geo;
+}
+
+/* 表面プリント（ロゴ・ボタン名・キラキラ模様） */
+function makeFrontCapTex() {
+  const X0 = -1.85, X1 = 1.85, Y0 = -2.1, Y1 = 2.1, W = 1024, H = Math.round(W * (Y1 - Y0) / (X1 - X0));
+  const t = canvasTex(W, H, g => {
+    const px = x => (x - X0) / (X1 - X0) * W, py = y => (Y1 - y) / (Y1 - Y0) * H, pu = u => u / (X1 - X0) * W;
+    const gr = g.createRadialGradient(px(-.55), py(1.1), 10, px(-.2), py(.3), W * .55);
+    gr.addColorStop(0, '#9b77ec'); gr.addColorStop(.55, C.shell); gr.addColorStop(1, C.shell);
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    // キラキラ模様（画面とボタンの周りは避ける）
+    const rnd = mulberry(42);
+    const avoid = (x, y) => (Math.abs(x - WIN.cx) < WIN.w / 2 + .18 && Math.abs(y - WIN.cy) < WIN.h / 2 + .2) || (y < -.7 && y > -1.55 && Math.abs(x) < 1) || (y > 1.2 && y < 1.9 && Math.abs(x) < .95);
+    for (let i = 0; i < 170; i++) {
+      const x = rnd() * 3.4 - 1.7, y = rnd() * 4 - 2;
+      if (avoid(x, y)) continue;
+      const k = rnd();
+      g.save(); g.translate(px(x), py(y));
+      if (k < .45) { g.fillStyle = `rgba(255,226,140,${.35 + rnd() * .35})`; sparklePath(g, 0, 0, pu(.03 + rnd() * .04)); g.fill(); }
+      else if (k < .7) { g.fillStyle = `rgba(255,150,200,${.25 + rnd() * .25})`; heartPath(g, 0, 0, pu(.025 + rnd() * .02)); g.fill(); }
+      else { g.fillStyle = `rgba(255,255,255,${.12 + rnd() * .2})`; ell(g, 0, 0, pu(.012), pu(.012)); }
+      g.restore();
+    }
+    // 下側のハーフトーン
+    for (let y = -1.55; y > -2.1; y -= .07) {
+      for (let x = -1.8; x < 1.8; x += .07) {
+        const r = pu(.008 + (-1.55 - y) * .045);
+        g.fillStyle = 'rgba(40,14,90,.35)'; ell(g, px(x + ((Math.round(y / .07) % 2) ? .035 : 0)), py(y), r, r);
+      }
+    }
+    // 画面まわりのプリント枠
+    g.save();
+    g.fillStyle = 'rgba(30,10,64,.62)';
+    roundRectCanvas(g, px(WIN.cx), py(WIN.cy), pu(WIN.w + .22), pu(WIN.h + .22), pu(WIN.r + .11)); g.fill();
+    g.strokeStyle = 'rgba(255,226,140,.55)'; g.lineWidth = 3;
+    roundRectCanvas(g, px(WIN.cx), py(WIN.cy), pu(WIN.w + .22), pu(WIN.h + .22), pu(WIN.r + .11)); g.stroke();
+    g.fillStyle = 'rgba(255,226,140,.8)'; g.font = `400 ${pu(.055)}px "DotGothic16",monospace`; g.textAlign = 'right'; g.textBaseline = 'middle';
+    g.fillText('RMK-3D  LCD', px(WIN.w / 2 - .12), py(WIN.cy - WIN.h / 2 - .06));
+    g.textAlign = 'left'; g.fillText('♥ DOT MATRIX', px(-WIN.w / 2 + .12), py(WIN.cy - WIN.h / 2 - .06));
+    g.restore();
+    // 王冠マーク
+    g.save(); g.translate(px(0), py(1.72)); g.scale(pu(.001), pu(.001));
+    g.fillStyle = '#f2c14e'; g.strokeStyle = '#3a1670'; g.lineWidth = 16; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(-120, 50); g.lineTo(-140, -60); g.lineTo(-60, 0); g.lineTo(0, -90); g.lineTo(60, 0); g.lineTo(140, -60); g.lineTo(120, 50); g.closePath();
+    g.stroke(); g.fill();
+    g.fillStyle = '#ff5d8f'; ell(g, 0, 10, 20, 20); g.fillStyle = '#4fe0c4'; ell(g, -70, 22, 13, 13); ell(g, 70, 22, 13, 13);
+    g.restore();
+    // ロゴ
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `900 ${pu(.2)}px "Zen Maru Gothic",sans-serif`;
+    try { g.letterSpacing = `${pu(.012)}px`; } catch (e) {}
+    g.lineWidth = pu(.035); g.strokeStyle = '#2a0f5a'; g.lineJoin = 'round';
+    g.strokeText('KINTAMAGOTCHI', px(0), py(1.47));
+    const lg = g.createLinearGradient(0, py(1.57), 0, py(1.37)); lg.addColorStop(0, '#fff1c2'); lg.addColorStop(.5, '#f2c14e'); lg.addColorStop(1, '#d68a1e');
+    g.fillStyle = lg; g.fillText('KINTAMAGOTCHI', px(0), py(1.47));
+    try { g.letterSpacing = `${pu(.02)}px`; } catch (e) {}
+    g.font = `700 ${pu(.075)}px "Zen Maru Gothic",sans-serif`;
+    g.fillStyle = '#ffd9f0'; g.fillText('〜 食卓の魔王 ロマ子様 〜', px(0), py(1.29));
+    try { g.letterSpacing = '0px'; } catch (e) {}
+    // ボタン台座とラベル
+    g.save();
+    g.fillStyle = 'rgba(30,10,64,.4)'; g.strokeStyle = 'rgba(255,226,140,.35)'; g.lineWidth = 3;
+    g.beginPath();
+    g.moveTo(px(-.98), py(-.9));
+    g.quadraticCurveTo(px(0), py(-1.02), px(.98), py(-.9));
+    g.quadraticCurveTo(px(1.05), py(-1.3), px(.6), py(-1.44));
+    g.quadraticCurveTo(px(0), py(-1.62), px(-.6), py(-1.44));
+    g.quadraticCurveTo(px(-1.05), py(-1.3), px(-.98), py(-.9));
+    g.fill(); g.stroke();
+    g.font = `400 ${pu(.07)}px "DotGothic16",monospace`;
+    for (const b of BTN) {
+      g.fillStyle = '#ffe9b0'; g.fillText(b.label, px(b.x), py(b.y - .23));
+    }
+    g.restore();
+  });
+  t.repeat.set(1 / (X1 - X0), 1 / (Y1 - Y0));
+  t.offset.set(-X0 / (X1 - X0), -Y0 / (Y1 - Y0));
+  return t;
+}
+function makeBackCapTex() {
+  const X0 = -1.85, X1 = 1.85, Y0 = -2.1, Y1 = 2.1, W = 1024, H = Math.round(W * (Y1 - Y0) / (X1 - X0));
+  const t = canvasTex(W, H, g => {
+    const px = x => (x - X0) / (X1 - X0) * W, py = y => (Y1 - y) / (Y1 - Y0) * H, pu = u => u / (X1 - X0) * W;
+    const gr = g.createRadialGradient(px(.4), py(1), 10, px(0), py(0), W * .6);
+    gr.addColorStop(0, '#9272e6'); gr.addColorStop(.6, C.shell); gr.addColorStop(1, C.shell);
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    // 電池ぶた
+    g.fillStyle = 'rgba(40,14,90,.25)'; g.strokeStyle = 'rgba(30,8,70,.7)'; g.lineWidth = 5;
+    roundRectCanvas(g, px(0), py(-.55), pu(1.5), pu(1.2), pu(.14)); g.fill(); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,.1)'; for (let i = -3; i <= 3; i++) g.fillRect(px(-.5), py(-.1 - i * .05) - 2, pu(1), 4);
+    for (const [x, y] of [[-.6, -.05], [.6, -.05], [-.6, -1.05], [.6, -1.05]]) {
+      g.fillStyle = '#c9a53c'; ell(g, px(x), py(y), pu(.045), pu(.045));
+      g.strokeStyle = '#6b5212'; g.lineWidth = 4; g.beginPath(); g.moveTo(px(x - .03), py(y)); g.lineTo(px(x + .03), py(y)); g.moveTo(px(x), py(y - .03)); g.lineTo(px(x), py(y + .03)); g.stroke();
+    }
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(255,233,176,.9)';
+    g.font = `400 ${pu(.075)}px "DotGothic16",monospace`;
+    g.fillText('BATTERY  CR2032 × 1', px(0), py(-.4));
+    g.fillText('⊕ OPEN', px(0), py(-.7));
+    g.font = `700 ${pu(.07)}px "Zen Maru Gothic",sans-serif`;
+    g.fillText('ロマ子様の許可なく開封を禁ず', px(0), py(-1.5));
+    g.font = `400 ${pu(.06)}px "DotGothic16",monospace`;
+    g.fillStyle = 'rgba(255,233,176,.6)';
+    g.fillText('MODEL RMK-3D  ／  MADE IN 食卓王国', px(0), py(-1.68));
+    g.fillText('©2026 ROMACO DARK DINING SYSTEMS', px(0), py(-1.8));
+    // 大きな王冠のエンボス
+    g.save(); g.translate(px(0), py(1.0)); g.scale(pu(.0028), pu(.0028));
+    g.fillStyle = 'rgba(255,226,140,.18)'; g.strokeStyle = 'rgba(255,226,140,.5)'; g.lineWidth = 6;
+    g.beginPath(); g.moveTo(-120, 50); g.lineTo(-140, -60); g.lineTo(-60, 0); g.lineTo(0, -90); g.lineTo(60, 0); g.lineTo(140, -60); g.lineTo(120, 50); g.closePath(); g.fill(); g.stroke();
+    g.restore();
+    // スピーカー穴
+    g.fillStyle = 'rgba(20,6,50,.6)';
+    for (let r = 0; r < 4; r++) for (let c = -(3 - r % 2); c <= 3 - r % 2; c++) if (Math.abs(c) + r < 6) ell(g, px(c * .09 + (r % 2 ? .045 : 0)), py(.3 - r * .08), pu(.02), pu(.02));
+  });
+  // 裏から見て読めるよう左右反転
+  t.repeat.set(-1 / (X1 - X0), 1 / (Y1 - Y0));
+  t.offset.set(X1 / (X1 - X0), -Y0 / (Y1 - Y0));
+  return t;
+}
+// canvas に角丸長方形（中心基準）
+function roundRectCanvas(g, cx, cy, w, h, r) {
+  const x = cx - w / 2, y = cy - h / 2;
+  g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+}
+/* 画面の中の背景（液晶＋魔王城） */
+function makeLCDTex() {
+  const t = canvasTex(512, 418, (g, W, H) => {
+    const gr = g.createLinearGradient(0, 0, 0, H);
+    gr.addColorStop(0, '#a98fe6'); gr.addColorStop(.55, '#d9cbfa'); gr.addColorStop(1, '#efe6ff');
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    // ピクセルの月
+    g.fillStyle = 'rgba(255,248,220,.75)';
+    const P = 6;
+    for (let y = -8; y <= 8; y++) for (let x = -8; x <= 8; x++) if (x * x + y * y <= 64 && (x + 3) * (x + 3) + (y + 2) * (y + 2) > 30) g.fillRect(400 + x * P, 90 + y * P, P - 1, P - 1);
+    // ピクセルの星
+    const rnd = mulberry(3);
+    g.fillStyle = 'rgba(255,255,255,.8)';
+    for (let i = 0; i < 26; i++) { const x = rnd() * W, y = rnd() * H * .5; g.fillRect(x | 0, y | 0, 4, 4); if (rnd() > .6) { g.fillRect((x | 0) - 4, y | 0, 12, 4); g.fillRect(x | 0, (y | 0) - 4, 4, 12); } }
+    // 魔王城シルエット
+    g.fillStyle = 'rgba(96,64,170,.3)';
+    const castle = [[40, 250, 50, 170], [95, 210, 40, 210], [140, 270, 60, 150], [360, 230, 44, 190], [410, 190, 46, 230], [460, 260, 40, 160]];
+    for (const [x, y, w, h] of castle) {
+      g.fillRect(x, y, w, h);
+      for (let i = 0; i < w / 2; i += 6) g.fillRect(x + i, y - i * 1.1 - 6, w - i * 2, 7);
+      for (let i = 0; i < w; i += 12) g.fillRect(x + i, y - 6, 6, 6);
+    }
+    // ドットマトリクスの格子
+    g.fillStyle = 'rgba(70,40,130,.07)';
+    for (let x = 0; x < W; x += 6) g.fillRect(x, 0, 1, H);
+    for (let y = 0; y < H; y += 6) g.fillRect(0, y, W, 1);
+    // 周辺減光
+    const vg = g.createRadialGradient(W / 2, H * .45, H * .3, W / 2, H * .5, W * .75);
+    vg.addColorStop(0, 'rgba(40,10,80,0)'); vg.addColorStop(1, 'rgba(40,10,80,.35)');
+    g.fillStyle = vg; g.fillRect(0, 0, W, H);
+  });
+  return setWinUV(t);
+}
+function makeTableTex() {
+  const t = canvasTex(256, 128, (g, W, H) => {
+    g.fillStyle = '#fff4fa'; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(255,130,180,.35)';
+    for (let x = 0; x < W; x += 32) g.fillRect(x, 0, 16, H);
+    for (let y = 0; y < H; y += 32) g.fillRect(0, y, W, 16);
+    g.fillStyle = 'rgba(255,255,255,.5)';
+    for (let x = 8; x < W; x += 32) for (let y = 8; y < H; y += 32) ell(g, x, y, 2, 2);
+  });
+  return t;
+}
+function makeGlareTex() {
+  const t = canvasTex(256, 256, (g, W, H) => {
+    g.clearRect(0, 0, W, H);
+    g.save(); g.translate(W / 2, H / 2); g.rotate(-.7);
+    const band = (x, w, a) => { const gr = g.createLinearGradient(x - w, 0, x + w, 0); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.5, `rgba(255,255,255,${a})`); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(x - w, -300, w * 2, 600); };
+    band(-70, 34, .3); band(-20, 10, .22); band(80, 20, .12);
+    g.restore();
+  });
+  return setWinUV(t);
+}
+function makeCrackTex() {
+  const t = canvasTex(512, 418, (g, W, H) => {
+    g.clearRect(0, 0, W, H);
+    const rnd = mulberry(99), cx = W * .56, cy = H * .38;
+    g.strokeStyle = 'rgba(255,255,255,.95)'; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.shadowColor = 'rgba(160,220,255,.9)'; g.shadowBlur = 6;
+    const rays = [];
+    for (let i = 0; i < 13; i++) {
+      const a = i / 13 * TAU + rnd() * .3; let x = cx, y = cy; const pts = [[x, y]];
+      g.lineWidth = 2.6; g.beginPath(); g.moveTo(x, y);
+      for (let s = 0; s < 9; s++) { const len = 18 + rnd() * 34, aa = a + (rnd() - .5) * .7; x += Math.cos(aa) * len; y += Math.sin(aa) * len; g.lineTo(x, y); pts.push([x, y]); }
+      g.stroke(); rays.push(pts);
+    }
+    g.lineWidth = 1.6;
+    for (const ring of [2, 4, 6]) {
+      g.beginPath();
+      rays.forEach((r, i) => { const p = r[Math.min(ring, r.length - 1)]; i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); });
+      g.closePath(); g.stroke();
+    }
+    g.fillStyle = 'rgba(255,255,255,.5)'; ell(g, cx, cy, 10, 10);
+  });
+  return setWinUV(t);
+}
+function makeMagicTex() {
+  return canvasTex(512, 512, g => {
+    g.translate(256, 256);
+    g.shadowColor = '#ff8fd0'; g.shadowBlur = 16;
+    g.strokeStyle = '#ffd98a'; g.lineWidth = 6;
+    for (const r of [238, 214, 140]) { g.beginPath(); g.arc(0, 0, r, 0, TAU); g.stroke(); }
+    g.lineWidth = 4; g.strokeStyle = '#ff9ad5';
+    for (let k = 0; k < 2; k++) { g.beginPath(); for (let i = 0; i <= 3; i++) { const a = -PI / 2 + k * PI + i * TAU / 3; g.lineTo(Math.cos(a) * 205, Math.sin(a) * 205); } g.stroke(); }
+    g.fillStyle = '#ffe7a8'; g.font = '700 26px "Zen Maru Gothic",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const runes = 'ロマコサマ・ショクタクノマオウ・キンタマゴッチ・';
+    for (let i = 0; i < runes.length; i++) { const a = i / runes.length * TAU; g.save(); g.rotate(a); g.fillText(runes[i], 0, -226); g.restore(); }
+    g.strokeStyle = '#ffd98a'; g.lineWidth = 5; starPath(g, 0, 0, 120, 48); g.stroke();
+  });
+}
+function makeBlobTex() {
+  return canvasTex(128, 128, g => { const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(40,10,70,.55)'); gr.addColorStop(1, 'rgba(40,10,70,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); });
+}
+
+/* 物理っぽいマテリアルの小さな工場 */
+const phys = o => new THREE.MeshPhysicalMaterial(o);
+let MAT = null;
+function buildMaterials() {
+  MAT = {
+    skin: phys({ color: C.skin, roughness: .55, clearcoat: .25, clearcoatRoughness: .45, sheen: .5, sheenColor: new THREE.Color('#ffc4c4') }),
+    cheek: phys({ color: '#fcd0c8', roughness: .5, clearcoat: .3, sheen: .6, sheenColor: new THREE.Color('#ffb0b0') }),
+    hair: phys({ color: C.hair, roughness: .36, clearcoat: .7, clearcoatRoughness: .2, sheen: 1, sheenColor: new THREE.Color('#a8a8ff'), sheenRoughness: .35, side: THREE.DoubleSide }),
+    white: phys({ color: C.white, roughness: .5, sheen: .6, sheenColor: new THREE.Color('#ffffff') }),
+    red: phys({ color: C.red, roughness: .28, clearcoat: 1 }),
+    black: phys({ color: '#27212e', roughness: .35, clearcoat: .8, sheen: .6, sheenColor: new THREE.Color('#6b5a8a') }),
+    navy: phys({ color: '#2f2d6e', roughness: .4, clearcoat: .4 }),
+    gold: new THREE.MeshStandardMaterial({ color: C.gold, metalness: 1, roughness: .22 }),
+  };
+}
+
+let dev, devRoot, D = {};
+function buildDevice() {
+  devRoot = new THREE.Group(); devRoot.rotation.order = 'YXZ';
+  dev = new THREE.Group();
+  devRoot.add(dev); scene.add(devRoot);
+
+  const shellBase = { roughness: .3, clearcoat: 1, clearcoatRoughness: .08, iridescence: .45, iridescenceIOR: 1.35, iridescenceThicknessRange: [120, 420], sheen: .25, sheenColor: new THREE.Color('#ffa3e0') };
+  const side = phys({ ...shellBase, color: C.shell });
+  const capF = phys({ ...shellBase, color: '#ffffff', map: makeFrontCapTex() });
+  const capB = phys({ ...shellBase, color: '#ffffff', map: makeBackCapTex() });
+
+  const front = eggShape(); front.holes.push(winPath());
+  const gF = splitInnerWalls(smoothNormals(new THREE.ExtrudeGeometry(front, { depth: .2, bevelEnabled: true, bevelThickness: .2, bevelSize: .13, bevelSegments: 10, curveSegments: 40, steps: 1 })));
+  const innerWall = phys({ color: '#24114a', roughness: .6, envMapIntensity: .35, sheen: .35, sheenColor: new THREE.Color('#8f6ad8') });
+  const gB = new THREE.ExtrudeGeometry(eggShape(), { depth: .35, bevelEnabled: true, bevelThickness: .2, bevelSize: .13, bevelSegments: 10, curveSegments: 40, steps: 1 });
+  gB.translate(0, 0, -.75); smoothNormals(gB);
+  const mF = new THREE.Mesh(gF, [capF, side, innerWall]); mF.castShadow = true;
+  const mB = new THREE.Mesh(gB, [capB, side]); mB.castShadow = true;
+  dev.add(mF, mB);
+  D.shell = [mF, mB];
+
+  // 合わせ目の金リング
+  const seamPts = eggShape().getSpacedPoints(220).map(p => new V3(p.x, p.y, -.2));
+  dev.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seamPts, true), 440, .06, 10, true), MAT.gold));
+  // 画面の金ベゼル
+  const bezPts = winPath().getSpacedPoints(180).map(p => new V3(p.x, p.y, FRONT_Z));
+  dev.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(bezPts, true), 360, .034, 10, true), MAT.gold));
+
+  // 画面の中：液晶背景・テーブルクロスの床
+  // 液晶は自発光（ライトの影響を受けない）にして、明るさを一定に保つ
+  const lcd = new THREE.Mesh(new THREE.ShapeGeometry(winPath(.06, THREE.Shape), 24), new THREE.MeshBasicMaterial({ map: makeLCDTex(), color: new THREE.Color(.66, .62, .78) }));
+  lcd.position.z = -.185; dev.add(lcd);
+  const tableTex = makeTableTex(); tableTex.wrapS = tableTex.wrapT = THREE.RepeatWrapping; tableTex.repeat.set(3, 1.1);
+  const table = new THREE.Mesh(new THREE.PlaneGeometry(1.9, .62), phys({ map: tableTex, color: '#e9d6ec', roughness: .75, sheen: .3, sheenColor: new THREE.Color('#ffffff') }));
+  table.rotation.x = -PI / 2; table.position.set(0, FLOOR_Y, (FRONT_Z - .185) / 2); dev.add(table);
+  // 画面の中を照らす小さなライト（本体と一緒に回る）
+  const inner = new THREE.PointLight(0xfff1e8, 1.8, 5, 2); inner.position.set(0, .8, 1.3); dev.add(inner);
+  const innerFill = new THREE.PointLight(0xc9a8ff, .8, 3, 2); innerFill.position.set(-.6, .2, .1); dev.add(innerFill);
+  D.innerLight = inner;
+
+  // ガラス・反射・ヒビ
+  D.glass = new THREE.Group(); dev.add(D.glass);
+  const gGeo = new THREE.ShapeGeometry(winPath(0, THREE.Shape), 24);
+  D.glassMat = phys({ color: '#ffffff', transparent: true, opacity: .05, roughness: .04, metalness: 0, envMapIntensity: .9, depthWrite: false });
+  const glass = new THREE.Mesh(gGeo, D.glassMat); glass.position.z = FRONT_Z - .03; D.glass.add(glass);
+  D.glareMat = new THREE.MeshBasicMaterial({ map: makeGlareTex(), transparent: true, opacity: .22, blending: THREE.AdditiveBlending, depthWrite: false });
+  const glare = new THREE.Mesh(gGeo, D.glareMat); glare.position.z = FRONT_Z - .028; D.glass.add(glare);
+  D.crackMat = new THREE.MeshBasicMaterial({ map: makeCrackTex(), transparent: true, opacity: 0, depthWrite: false });
+  const crack = new THREE.Mesh(gGeo, D.crackMat); crack.position.z = FRONT_Z - .026; D.glass.add(crack);
+
+  // 3つのボタン
+  D.buttons = BTN.map((b, i) => {
+    const grp = new THREE.Group(); grp.position.set(b.x, b.y, FRONT_Z); dev.add(grp);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(.135, .028, 16, 48), MAT.gold); grp.add(ring);
+    const well = new THREE.Mesh(new THREE.CircleGeometry(.13, 40), new THREE.MeshStandardMaterial({ color: 0x1a0b30, roughness: .8 })); well.position.z = .001; grp.add(well);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(.112, 32, 20), phys({ color: b.col, roughness: .22, clearcoat: 1, clearcoatRoughness: .05, sheen: .4, sheenColor: new THREE.Color('#ffffff'), emissive: new THREE.Color(b.col), emissiveIntensity: .08 }));
+    cap.scale.set(1, 1, .55); cap.position.z = .02; cap.userData.btn = i; cap.castShadow = true; grp.add(cap);
+    return { grp, cap, press: 0, glow: 0 };
+  });
+
+  // キーホルダーの輪っか
+  D.ringPivot = new THREE.Group(); D.ringPivot.position.set(.78, 1.93, -.27); D.ringPivot.rotation.z = -.64; dev.add(D.ringPivot);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.11, .026, 16, 40), MAT.gold); ring.rotation.y = PI / 2; D.ringPivot.add(ring);
+
+  // 足もとの丸影・魔法陣
+  D.blob = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: makeBlobTex(), transparent: true, depthWrite: false }));
+  D.blob.rotation.x = -PI / 2; D.blob.position.set(0, FLOOR_Y + .004, .05); dev.add(D.blob);
+  D.magic = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.3), new THREE.MeshBasicMaterial({ map: makeMagicTex(), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+  D.magic.rotation.x = -PI / 2; D.magic.position.set(0, FLOOR_Y + .008, .1); D.magic.visible = false; dev.add(D.magic);
+}
+
+/* ボールチェーン（ぶらぶら揺れる物理） */
+const CH = { N: 13, seg: .07, p: [], o: [], mesh: null, charm: null };
+const _tmp = new V3(), _tmp2 = new V3();
+function chainAnchor(out) { return D.ringPivot.localToWorld(out.set(0, .11, 0)); }
+function buildChain() {
+  CH.mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(.024, 12, 8), MAT.gold, CH.N * 2 - 1);
+  CH.mesh.frustumCulled = false; CH.mesh.castShadow = true; scene.add(CH.mesh);
+  CH.charm = makeFood('dango'); CH.charm.scale.setScalar(.5); scene.add(CH.charm);
+  devRoot.updateMatrixWorld(true);
+  const a = chainAnchor(new V3());
+  for (let i = 0; i < CH.N; i++) { const v = a.clone().add(new V3(i * .02, -i * CH.seg, 0)); CH.p.push(v); CH.o.push(v.clone()); }
+}
+const _m = new THREE.Matrix4(), _mi = new THREE.Matrix4(), _q = new THREE.Quaternion(), _up = new V3(0, 1, 0);
+function stepChain(dt) {
+  const h = Math.min(dt, 1 / 30) / 2;
+  _mi.copy(dev.matrixWorld).invert();
+  for (let sub = 0; sub < 2; sub++) {
+    const g = -7 * h * h;
+    const a = chainAnchor(_tmp2);
+    for (let i = 1; i < CH.N; i++) {
+      const p = CH.p[i], o = CH.o[i];
+      const vx = (p.x - o.x) * .985, vy = (p.y - o.y) * .985, vz = (p.z - o.z) * .985;
+      o.copy(p); p.x += vx; p.y += vy + g; p.z += vz;
+    }
+    CH.p[0].copy(a); CH.o[0].copy(a);
+    for (let it = 0; it < 8; it++) {
+      for (let i = 0; i < CH.N - 1; i++) {
+        const p1 = CH.p[i], p2 = CH.p[i + 1];
+        _tmp.subVectors(p2, p1); const len = _tmp.length() || 1e-6; const diff = (len - CH.seg) / len;
+        if (i === 0) p2.addScaledVector(_tmp, -diff);
+        else { p1.addScaledVector(_tmp, diff * .5); p2.addScaledVector(_tmp, -diff * .5); }
+      }
+      // 本体（だ円体で近似）にめり込まないよう押し出す
+      for (let i = 1; i < CH.N; i++) {
+        _tmp.copy(CH.p[i]).applyMatrix4(_mi);
+        const ex = _tmp.x / 1.8, ey = _tmp.y / 2.12, ez = (_tmp.z + .275) / .78, q = ex * ex + ey * ey + ez * ez;
+        if (q < 1) { const s = 1 / Math.sqrt(q); _tmp.x *= s; _tmp.y *= s; _tmp.z = (_tmp.z + .275) * s - .275; CH.p[i].copy(_tmp.applyMatrix4(dev.matrixWorld)); }
+      }
+    }
+  }
+  let k = 0;
+  for (let i = 0; i < CH.N; i++) {
+    _m.makeTranslation(CH.p[i].x, CH.p[i].y, CH.p[i].z); CH.mesh.setMatrixAt(k++, _m);
+    if (i < CH.N - 1) { _tmp.addVectors(CH.p[i], CH.p[i + 1]).multiplyScalar(.5); _m.makeTranslation(_tmp.x, _tmp.y, _tmp.z); CH.mesh.setMatrixAt(k++, _m); }
+  }
+  CH.mesh.instanceMatrix.needsUpdate = true;
+  const last = CH.p[CH.N - 1], prev = CH.p[CH.N - 2];
+  _tmp.subVectors(prev, last).normalize();
+  CH.charm.quaternion.setFromUnitVectors(_up, _tmp);
+  CH.charm.position.copy(last).addScaledVector(_tmp, -.12);
+}
+
+/* =====================================================================
+   7. 食べもの・うんち
+   ===================================================================== */
+function makeFood(kind) {
+  const g = new THREE.Group();
+  if (kind === 'dango') {
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(.009, .009, .42, 8), phys({ color: '#d9b27c', roughness: .7 }));
+    stick.position.y = -.03; g.add(stick);
+    [['#ffb3c7', .11], ['#fff6ea', -.01], ['#a6dd8e', -.13]].forEach(([c, y]) => {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(.066, 24, 16), phys({ color: c, roughness: .45, clearcoat: .6, sheen: .6, sheenColor: new THREE.Color('#ffffff') }));
+      b.position.y = y; b.scale.set(1, .92, 1); g.add(b);
+    });
+    g.rotation.z = .25;
+  } else {
+    const s = new THREE.Shape(); const r = .02;
+    s.moveTo(0, .11); s.quadraticCurveTo(r, .11 - r, .1, -.05); s.quadraticCurveTo(.11, -.08, .07, -.08); s.lineTo(-.07, -.08); s.quadraticCurveTo(-.11, -.08, -.1, -.05); s.quadraticCurveTo(-r, .11 - r, 0, .11);
+    const geo = new THREE.ExtrudeGeometry(s, { depth: .05, bevelEnabled: true, bevelThickness: .03, bevelSize: .03, bevelSegments: 6, curveSegments: 16 });
+    geo.translate(0, 0, -.025); smoothNormals(geo);
+    g.add(new THREE.Mesh(geo, phys({ color: '#fffdf6', roughness: .75, sheen: .8, sheenColor: new THREE.Color('#ffffff') })));
+    const nori = new THREE.Mesh(new THREE.BoxGeometry(.1, .075, .125), phys({ color: '#1f3326', roughness: .5, clearcoat: .3 }));
+    nori.position.y = -.07; g.add(nori);
+    // うめぼし
+    const ume = new THREE.Mesh(new THREE.SphereGeometry(.022, 12, 8), phys({ color: '#d8324f', roughness: .3, clearcoat: 1 }));
+    ume.position.set(0, .03, .062); g.add(ume);
+    g.scale.setScalar(1.15);
+  }
+  return g;
+}
+const poopMat = () => phys({ color: '#8a5a3b', roughness: .35, clearcoat: .8, clearcoatRoughness: .2 });
+function makePoop() {
+  const g = new THREE.Group(), m = poopMat();
+  [[.075, .032, .03], [.056, .028, .085], [.036, .022, .13]].forEach(([R, r, y]) => {
+    const t = new THREE.Mesh(new THREE.TorusGeometry(R, r, 12, 32), m); t.rotation.x = PI / 2; t.position.y = y; g.add(t);
+  });
+  const fill = new THREE.Mesh(new THREE.SphereGeometry(.075, 16, 12), m); fill.scale.set(1, .6, 1); fill.position.y = .05; g.add(fill);
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(.028, .06, 12), m); tip.position.set(.005, .175, 0); tip.rotation.z = -.3; g.add(tip);
+  for (const s of [-1, 1]) {
+    const e = new THREE.Mesh(new THREE.SphereGeometry(.016, 12, 8), MAT.white); e.position.set(s * .028, .09, .078); g.add(e);
+    const p = new THREE.Mesh(new THREE.SphereGeometry(.008, 8, 6), MAT.black); p.position.set(s * .028, .09, .092); g.add(p);
+  }
+  return g;
+}
+
+/* =====================================================================
+   8. キャラクター
+   ===================================================================== */
+const ROOT_SCALE = .88;
+class Avatar {
+  constructor() {
+    this.root = new THREE.Group();
+    this.inner = new THREE.Group(); this.root.add(this.inner);
+    this.spring = { x: 0, v: 0 };
+    this.fat = S.fat; this.fatShown = S.fat; this.fatOverride = null;
+    this.expr = 'normal'; this.baseExpr = 'normal'; this.exprHold = 0; this.faceKey = '';
+    this.blinkT = rand(1.5, 4); this.blinking = 0;
+    this.jumpY = 0; this.hop = 0; this.walkTarget = null; this.walkPhase = 0;
+    this.facing = 0; this.facingT = 0; this.spin = 0; this.roll = 0; this.spawn = 1;
+    this.lookUp = 0; this.armMode = 'rest';
+    this.mouthLocal = new V3(0, -.11, .29);
+    this.owned = [];
+  }
+  own(m) { this.owned.push(m); return m; }
+  kick(a) { this.spring.v += a; }
+  setExpr(e, hold = 1.5) { this.expr = e; this.exprHold = hold; }
+  walkTo(x) { this.walkTarget = x; }
+  stopWalk() { this.walkTarget = null; }
+  mouthIn(space) {
+    this.root.updateMatrixWorld(true);
+    const v = this.head.localToWorld(this.mouthLocal.clone());
+    return space.worldToLocal(v);
+  }
+  update(dt, t, ptr) {
+    // 太り具合（なめらかに追従）
+    const ft = this.fatOverride ?? this.fat;
+    this.fatShown = this.fatOverride != null ? ft : damp(this.fatShown, ft, 5, dt);
+    this.applyFat(this.fatShown);
+    // ぷるぷるバネ
+    const s = this.spring, k = 170, c = 7.5 - Math.min(this.fatShown, 1) * 3.8;
+    s.v += (-k * s.x - c * s.v) * dt; s.x += s.v * dt; s.x = clamp(s.x, -.45, .45);
+    const br = Math.sin(t * 2.3) * .02 * (1 + this.fatShown);
+    const sx = 1 + s.x * .6 + br * .4, sy = 1 - s.x + br;
+    this.inner.scale.set(sx, sy, sx);
+    this.inner.rotation.z = Math.sin(t * 9) * s.x * .3;
+    // おさんぽ
+    if (this.walkTarget != null) {
+      const dx = this.walkTarget - this.root.position.x;
+      if (Math.abs(dx) < .01) this.walkTarget = null;
+      else {
+        const sp = .3 * (1 - Math.min(this.fatShown, 1) * .6);
+        this.root.position.x += Math.sign(dx) * Math.min(Math.abs(dx), sp * dt);
+        this.walkPhase += dt * 11;
+        this.hop = Math.abs(Math.sin(this.walkPhase)) * .035;
+        this.facingT = Math.sign(dx) * .75;
+      }
+    }
+    if (this.walkTarget == null) { this.hop = damp(this.hop, 0, 10, dt); this.facingT = 0; }
+    this.facing = damp(this.facing, this.facingT, 6, dt);
+    this.inner.position.y = this.jumpY + this.hop;
+    // 目線（マウスの方を見る）
+    const ly = clamp(ptr.x * .55, -.5, .5) - this.facing * .6;
+    const lp = clamp(-ptr.y * .28, -.22, .3) - this.lookUp * .45;
+    this.head.rotation.y = damp(this.head.rotation.y, ly, 4, dt);
+    this.head.rotation.x = damp(this.head.rotation.x, lp, 4, dt);
+    this.head.rotation.z = Math.sin(t * 1.7) * .05;
+    // 腕
+    const base = .45 + Math.min(this.fatShown, 1.3) * .5;
+    let aL = base + Math.sin(t * 2.3) * .06, aR = aL;
+    if (this.walkTarget != null) { aL += Math.sin(this.walkPhase) * .35; aR -= Math.sin(this.walkPhase) * .35; }
+    if (this.armMode === 'up') { aL = aR = 2.5 + Math.sin(t * 16) * .25; }
+    else if (this.armMode === 'wave') { aR = 2.3 + Math.sin(t * 10) * .45; }
+    this.armL.rotation.z = damp(this.armL.rotation.z, -aL, 10, dt);
+    this.armR.rotation.z = damp(this.armR.rotation.z, aR, 10, dt);
+    // まばたき・表情
+    this.blinkT -= dt;
+    if (this.blinkT < 0) { this.blinking = .13; this.blinkT = rand(2.2, 5); }
+    if (this.blinking > 0) this.blinking -= dt;
+    if (this.exprHold > 0) { this.exprHold -= dt; if (this.exprHold <= 0) this.expr = this.baseExpr; }
+    const key = this.expr + (this.blinking > 0 ? '-b' : '');
+    if (key !== this.faceKey) { this.faceKey = key; this.drawFace(this.expr, this.blinking > 0); }
+    this.animateExtra?.(dt, t);
+    // 全体
+    const outScale = 1 + Math.max(0, this.fatShown - 1) * .55;
+    this.root.scale.setScalar(ROOT_SCALE * this.spawn * outScale);
+    this.root.rotation.set(0, this.facing + this.spin, this.roll);
+  }
+  dispose() {
+    this.root.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    for (const m of this.owned) { m.map?.dispose(); m.alphaMap?.dispose(); m.dispose(); }
+  }
+}
+
+/* --- ロマ子様の顔（Canvasに描いて頭に貼る） --- */
+const FACE_W = 640, FACE_H = 400;
+const EYE_L = { x: 205, y: 192, s: -1, c: ['#1d5f60', '#3aa6a0', '#9ff0e4'], p: '#0f3a3b' };
+const EYE_R = { x: 435, y: 192, s: 1, c: ['#a3203f', '#ff5f86', '#ffc2d0'], p: '#5e0c26' };
+const FACE_SPEC = {
+  normal: { eyes: 'open', mouth: 'smile', blush: .35 },
+  happy: { eyes: 'closedHappy', mouth: 'open', blush: .65 },
+  smug: { eyes: 'closedHappy', mouth: 'tilde', blush: .55 },
+  eat: { eyes: 'closedHappy', mouth: 'bigopen', blush: .5 },
+  chew1: { eyes: 'closedHappy', mouth: 'chew1', blush: .6 },
+  chew2: { eyes: 'closedHappy', mouth: 'chew2', blush: .6 },
+  angry: { eyes: 'angry', mouth: 'frown', blush: .2 },
+  shock: { eyes: 'shock', mouth: 'wavy', blush: .15, sweat: true },
+  sad: { eyes: 'half', mouth: 'down', blush: .25, tears: true },
+  dizzy: { eyes: 'swirl', mouth: 'wavy', blush: .3 },
+  love: { eyes: 'heart', mouth: 'open', blush: .8 },
+  hungry: { eyes: 'half', mouth: 'o', blush: .2 },
+};
+function drawEye(g, E, style) {
+  const INK = '#221a3a';
+  g.save(); g.translate(E.x, E.y);
+  g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = INK;
+  const open = (lid = 0) => {
+    g.fillStyle = '#ffffff'; ell(g, 0, 4, 36, 46);
+    const gr = g.createLinearGradient(0, -38, 0, 48); gr.addColorStop(0, E.c[0]); gr.addColorStop(.55, E.c[1]); gr.addColorStop(1, E.c[2]);
+    g.fillStyle = gr; ell(g, 0, 8, 31, 40);
+    g.fillStyle = E.p; ell(g, 0, 11, 15, 20);
+    g.fillStyle = 'rgba(255,255,255,.95)'; ell(g, -11, -8, 10, 13); ell(g, 12, 26, 5.5, 5.5);
+    if (lid > 0) {
+      g.fillStyle = C.skin; g.fillRect(-60, -70, 120, 70 - 50 * (1 - lid) + 24 * lid);
+      const ly = -46 + 50 * lid;
+      g.lineWidth = 9; g.beginPath(); g.moveTo(-40, ly + 4); g.quadraticCurveTo(0, ly - 6, 40, ly + 4); g.stroke();
+    } else {
+      g.lineWidth = 9; g.beginPath(); g.ellipse(0, 6, 40, 47, 0, PI * 1.1, PI * 1.9); g.stroke();
+      g.lineWidth = 7; g.beginPath(); g.moveTo(E.s * 36, -20); g.lineTo(E.s * 50, -32); g.stroke();
+    }
+  };
+  switch (style) {
+    case 'open': open(); break;
+    case 'half': open(.55); break;
+    case 'angry':
+      open(.25);
+      g.lineWidth = 10; g.beginPath(); g.moveTo(E.s * 46, -52); g.lineTo(-E.s * 18, -32); g.stroke();
+      break;
+    case 'closedHappy': g.lineWidth = 10; g.beginPath(); g.arc(0, 20, 32, PI * 1.12, PI * 1.88); g.stroke(); break;
+    case 'closed': g.lineWidth = 9; g.beginPath(); g.arc(0, -4, 30, PI * .12, PI * .88); g.stroke(); break;
+    case 'shock':
+      g.fillStyle = '#fff'; ell(g, 0, 4, 38, 44); g.lineWidth = 6; g.beginPath(); g.ellipse(0, 4, 38, 44, 0, 0, TAU); g.stroke();
+      g.fillStyle = E.c[1]; ell(g, 0, 6, 9, 11); break;
+    case 'swirl':
+      g.lineWidth = 6; g.beginPath();
+      for (let a = 0; a < 6 * PI; a += .2) { const r = a * 2.2; g.lineTo(Math.cos(a) * r, 4 + Math.sin(a) * r); }
+      g.stroke(); break;
+    case 'heart':
+      g.fillStyle = '#ff4f84'; heartPath(g, 0, 4, 38); g.fill(); g.fillStyle = 'rgba(255,255,255,.8)'; ell(g, -14, -8, 8, 6, -.5); break;
+  }
+  g.restore();
+}
+function drawMouth(g, style) {
+  const INK = '#7a2536';
+  g.save(); g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = INK; g.lineWidth = 6;
+  const mx = 320, my = 290;
+  switch (style) {
+    case 'smile': g.beginPath(); g.arc(mx, my - 18, 20, PI * .2, PI * .8); g.stroke(); break;
+    case 'open':
+      g.beginPath(); g.moveTo(mx - 28, my - 12); g.quadraticCurveTo(mx, my + 44, mx + 28, my - 12); g.closePath();
+      g.fillStyle = '#b8203f'; g.fill(); g.save(); g.clip(); g.fillStyle = '#ff8aa2'; ell(g, mx, my + 18, 17, 11); g.restore(); g.lineWidth = 4; g.stroke(); break;
+    case 'tilde':
+      g.beginPath(); g.moveTo(mx - 28, my); g.bezierCurveTo(mx - 18, my - 16, mx - 8, my - 16, mx, my); g.bezierCurveTo(mx + 8, my + 16, mx + 18, my + 16, mx + 28, my); g.stroke(); break;
+    case 'bigopen':
+      g.fillStyle = '#8e1530'; ell(g, mx, my + 6, 25, 31); g.fillStyle = '#ff8aa2'; ell(g, mx, my + 24, 15, 9); g.lineWidth = 4; g.beginPath(); g.ellipse(mx, my + 6, 25, 31, 0, 0, TAU); g.stroke(); break;
+    case 'chew1':
+      g.beginPath(); g.moveTo(mx - 24, my - 8); g.quadraticCurveTo(mx - 18, my + 12, mx, my - 2); g.quadraticCurveTo(mx + 18, my + 12, mx + 24, my - 8); g.stroke(); break;
+    case 'chew2': g.fillStyle = '#8e1530'; ell(g, mx, my, 11, 8); break;
+    case 'frown': g.beginPath(); g.arc(mx, my + 26, 20, PI * 1.2, PI * 1.8); g.stroke(); break;
+    case 'down': g.beginPath(); g.arc(mx, my + 22, 14, PI * 1.2, PI * 1.8); g.stroke(); break;
+    case 'wavy': g.lineWidth = 5; g.beginPath(); for (let i = 0; i <= 8; i++) g.lineTo(mx - 32 + i * 8, my + (i % 2 ? -6 : 6)); g.stroke(); break;
+    case 'o': g.fillStyle = '#8e1530'; ell(g, mx, my, 9, 11); break;
+  }
+  g.restore();
+}
+function drawRomacoFace(g, expr, blink) {
+  const sp = FACE_SPEC[expr] || FACE_SPEC.normal;
+  g.fillStyle = C.skin; g.fillRect(0, 0, FACE_W, FACE_H);
+  for (const x of [128, 512]) {
+    const gr = g.createRadialGradient(x, 262, 4, x, 262, 60);
+    gr.addColorStop(0, `rgba(255,120,150,${sp.blush})`); gr.addColorStop(1, 'rgba(255,120,150,0)');
+    g.fillStyle = gr; g.fillRect(x - 64, 196, 128, 132);
+    if (sp.blush > .5) { g.strokeStyle = 'rgba(225,80,110,.55)'; g.lineWidth = 4; g.lineCap = 'round'; for (let i = -1; i <= 1; i++) { g.beginPath(); g.moveTo(x + i * 16 - 5, 270); g.lineTo(x + i * 16 + 5, 254); g.stroke(); } }
+  }
+  let eyes = sp.eyes;
+  if (blink && (eyes === 'open' || eyes === 'angry' || eyes === 'half')) eyes = 'closed';
+  drawEye(g, EYE_L, eyes); drawEye(g, EYE_R, eyes);
+  drawMouth(g, sp.mouth);
+  if (sp.tears) { g.fillStyle = 'rgba(120,200,255,.9)'; dropPath(g, 205, 262, 14); g.fill(); dropPath(g, 435, 262, 14); g.fill(); }
+  if (sp.sweat) { g.fillStyle = 'rgba(140,215,255,.95)'; g.strokeStyle = '#3a7fb0'; g.lineWidth = 3; dropPath(g, 560, 120, 24); g.fill(); g.stroke(); }
+}
+
+/* 髪の生えぎわ（前髪ギザギザ）用アルファマップ */
+function makeHairCapAlpha() {
+  return canvasTex(512, 256, (g, W, H) => {
+    g.fillStyle = '#000'; g.fillRect(0, 0, W, H); g.fillStyle = '#fff';
+    const TH = .64 * PI, toothW = .085 * PI;
+    for (let px = 0; px < W; px++) {
+      const phi = (px + .5) / W * TAU;
+      let d = Math.abs(((phi - PI / 2) % TAU + TAU) % TAU); if (d > PI) d = TAU - d;
+      const tri = Math.abs(((phi / toothW) % 1) - .5) * 2;
+      const front = .40 * PI + .055 * PI * (1 - tri);
+      const th = Math.min(lerp(front, .62 * PI, smooth(.30 * PI, .46 * PI, d)), TH);
+      g.fillRect(px, 0, 1, th / TH * H);
+    }
+  }, { srgb: false });
+}
+function makeCurtainAlpha() {
+  return canvasTex(256, 128, (g, W, H) => {
+    g.fillStyle = '#000'; g.fillRect(0, 0, W, H); g.fillStyle = '#fff';
+    g.fillRect(0, 0, W, H * .8);
+    const n = 14;
+    g.beginPath(); g.moveTo(0, H * .8);
+    for (let i = 0; i <= n; i++) { g.lineTo((i + .5) / n * W, H * .98); g.lineTo((i + 1) / n * W, H * .8); }
+    g.lineTo(W, 0); g.lineTo(0, 0); g.closePath(); g.fill();
+  }, { srgb: false });
+}
+function makeDressTex(sphereMap = false) {
+  return canvasTex(512, 256, (g, W, H) => {
+    // ロマ子様のワンピース：片側が水色、もう片側がピンクのチェック
+    const pinkRange = sphereMap ? [W * .25, W * .75] : [0, W * .5];
+    g.fillStyle = C.dress; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(255,255,255,.12)'; for (let x = 0; x < W; x += 22) g.fillRect(x, 0, 3, H);
+    g.save(); g.beginPath(); g.rect(pinkRange[0], 0, pinkRange[1] - pinkRange[0], H); g.clip();
+    g.fillStyle = C.check; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(255,255,255,.55)';
+    for (let x = 0; x < W; x += 28) g.fillRect(x, 0, 9, H);
+    for (let y = 0; y < H; y += 28) g.fillRect(0, y, W, 9);
+    g.fillStyle = 'rgba(79,224,196,.5)'; for (let x = 14; x < W; x += 56) for (let y = 14; y < H; y += 56) ell(g, x, y, 4, 4);
+    g.restore();
+    if (!sphereMap) { g.fillStyle = '#ffffff'; g.fillRect(0, H - 22, W, 22); for (let x = 0; x < W; x += 16) ell(g, x + 8, H - 22, 8, 7); }
+  });
+}
+
+class Romaco extends Avatar {
+  constructor() {
+    super();
+    this.kind = 'romaco'; this.name = 'ロマ子様';
+    this.build();
+  }
+  build() {
+    const I = this.inner, own = m => this.own(m);
+    // 足
+    this.legs = [-1, 1].map(s => {
+      const leg = new THREE.Group(); leg.position.x = s * .075; I.add(leg);
+      const sock = new THREE.Mesh(new THREE.CapsuleGeometry(.042, .06, 6, 12), MAT.white); sock.position.y = .085; leg.add(sock);
+      const shoe = new THREE.Mesh(new THREE.SphereGeometry(.05, 16, 12), MAT.black); shoe.scale.set(1, .62, 1.35); shoe.position.set(0, .03, .015); leg.add(shoe);
+      return leg;
+    });
+    // 体（ワンピース＋ふくらむお腹）
+    this.body = new THREE.Group(); I.add(this.body);
+    const dressMat = own(phys({ map: makeDressTex(), roughness: .55, sheen: .8, sheenColor: new THREE.Color('#ffffff'), sheenRoughness: .6 }));
+    const prof = [[0, .1], [.2, .1], [.225, .13], [.21, .18], [.16, .28], [.12, .36], [.1, .42], [0, .44]].map(([x, y]) => new THREE.Vector2(x, y));
+    this.dress = new THREE.Mesh(new THREE.LatheGeometry(prof, 48), dressMat); this.body.add(this.dress);
+    const bellyMat = own(phys({ map: makeDressTex(true), roughness: .5, sheen: .8, sheenColor: new THREE.Color('#ffffff'), clearcoat: .2 }));
+    this.belly = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), bellyMat); this.body.add(this.belly);
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(.085, .03, 12, 32), MAT.white); collar.rotation.x = PI / 2; collar.position.y = .425; this.body.add(collar);
+    const tie = new THREE.Mesh(new THREE.ConeGeometry(.034, .09, 4), MAT.navy); tie.rotation.x = PI; tie.position.set(0, .375, .105); this.body.add(tie);
+    // 腕
+    const mkArm = s => {
+      const arm = new THREE.Group(); arm.position.set(s * .115, .39, 0); I.add(arm);
+      const sleeve = new THREE.Mesh(new THREE.CapsuleGeometry(.042, .07, 6, 12), MAT.white); sleeve.position.y = -.07; arm.add(sleeve);
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(.038, 16, 12), MAT.skin); hand.position.y = -.15; arm.add(hand);
+      arm.rotation.z = s * .45;
+      return arm;
+    };
+    this.armL = mkArm(-1); this.armR = mkArm(1);
+    // 頭
+    this.head = new THREE.Group(); this.head.position.y = .72; I.add(this.head);
+    const hs = new THREE.Group(); hs.scale.set(1.05, .96, 1); this.head.add(hs);
+    hs.add(new THREE.Mesh(new THREE.SphereGeometry(.3, 48, 32), MAT.skin));
+    this.faceTex = canvasTex(FACE_W, FACE_H, () => {});
+    const faceMat = own(phys({ map: this.faceTex, roughness: .55, clearcoat: .25, clearcoatRoughness: .45, sheen: .5, sheenColor: new THREE.Color('#ffc4c4') }));
+    hs.add(new THREE.Mesh(new THREE.SphereGeometry(.3016, 64, 36, .1 * PI, .8 * PI, .3 * PI, .45 * PI), faceMat));
+    this.cheeks = [-1, 1].map(s => { const c = new THREE.Mesh(new THREE.SphereGeometry(.13, 24, 16), MAT.cheek); c.position.set(s * .17, -.1, .12); hs.add(c); return c; });
+    // 髪
+    const capMat = own(MAT.hair.clone()); capMat.alphaMap = makeHairCapAlpha(); capMat.alphaTest = .5;
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(.322, 64, 32, 0, TAU, 0, .64 * PI), capMat); cap.position.set(0, .015, -.01); hs.add(cap);
+    const curMat = own(MAT.hair.clone()); curMat.alphaMap = makeCurtainAlpha(); curMat.alphaTest = .5;
+    const cur = new THREE.Mesh(new THREE.CylinderGeometry(.315, .365, .56, 48, 1, true, .38 * PI, 1.24 * PI), curMat); cur.position.y = -.245; hs.add(cur);
+    for (const s of [-1, 1]) {
+      const lock = new THREE.Mesh(new THREE.CapsuleGeometry(.05, .26, 6, 12), MAT.hair); lock.position.set(s * .275, -.22, .1); lock.rotation.z = s * .1; lock.scale.set(1, 1, .65); hs.add(lock);
+    }
+    const ahoge = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new V3(0, .3, .02), new V3(.02, .4, .03), new V3(.09, .45, 0), new V3(.1, .39, -.03)]), 24, .014, 8), MAT.hair);
+    hs.add(ahoge);
+    // 赤いバッテンヘアピン
+    for (const s of [-1, 1]) {
+      const dir = new V3(s * .6, .52, .6).normalize();
+      const pin = new THREE.Group(); pin.position.copy(dir).multiplyScalar(.33).add(new V3(0, .015, -.01));
+      pin.quaternion.setFromUnitVectors(new V3(0, 0, 1), dir); hs.add(pin);
+      for (const r of [PI / 4, -PI / 4]) { const b = new THREE.Mesh(new THREE.BoxGeometry(.1, .026, .024), MAT.red); b.rotation.z = r; pin.add(b); }
+    }
+    // ミニハット（黒・赤いバラ付き）
+    const hat = new THREE.Group(); hat.position.set(-.07, .305, 0); hat.rotation.set(-.12, 0, .28); hs.add(hat);
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(.14, .14, .018, 32), MAT.black); hat.add(brim);
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(.085, .09, .13, 32), MAT.black); crown.position.y = .07; hat.add(crown);
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(.093, .093, .03, 32), MAT.navy); band.position.y = .025; hat.add(band);
+    const rose = new THREE.Mesh(new THREE.SphereGeometry(.032, 16, 12), MAT.red); rose.position.set(.085, .03, .03); hat.add(rose);
+    this.mouthLocal.set(0, -.11, .29);
+  }
+  drawFace(expr, blink) {
+    drawRomacoFace(this.faceTex.userData.g, expr, blink);
+    this.faceTex.needsUpdate = true;
+  }
+  applyFat(f) {
+    const fc = Math.min(f, 1.8), f1 = Math.min(fc, 1.2);
+    const R = .16 + .39 * fc;
+    this.belly.scale.set(R, R * .8, R * .92); this.belly.position.y = .24 + .22 * f1;
+    const d = 1 + 1.3 * f1; this.dress.scale.set(d, 1 + .15 * fc, d);
+    this.head.position.y = .72 + .26 * f1; this.head.scale.setScalar(1 + .12 * fc);
+    this.head.position.z = Math.max(0, fc - .9) * .6;   // 限界突破時は顔を玉より前へ
+    this.cheeks.forEach(c => c.scale.setScalar(.3 + .9 * Math.min(fc, 1.3)));
+    this.armL.position.set(-(.115 + .45 * fc), .39 + .12 * f1, 0);
+    this.armR.position.set(.115 + .45 * fc, .39 + .12 * f1, 0);
+    this.legs.forEach((l, i) => l.position.x = (i ? 1 : -1) * (.075 + .2 * Math.min(fc, 1)));
+  }
+}
+
+/* --- 画像から召喚する「自分だけのマスコット」 --- */
+class Mascot extends Avatar {
+  constructor(img, color) {
+    super();
+    this.kind = 'mascot'; this.name = 'ロマ子様（憑依体）';
+    this.img = img; this.color = color;
+    this.build();
+  }
+  build() {
+    const I = this.inner, own = m => this.own(m);
+    const col = new THREE.Color(this.color); const hsl = {}; col.getHSL(hsl);
+    col.setHSL(hsl.h, clamp(hsl.s, .3, .75), clamp(hsl.l, .6, .74));
+    const bodyMat = own(phys({ color: col, roughness: .42, clearcoat: .5, clearcoatRoughness: .3, sheen: .7, sheenColor: new THREE.Color('#ffffff') }));
+    this.bodyMat = bodyMat;
+    this.body = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), bodyMat); I.add(this.body);
+    // コウモリの羽（魔王のしるし）
+    const ws = new THREE.Shape(); ws.moveTo(0, 0); ws.quadraticCurveTo(.12, .16, .3, .14); ws.quadraticCurveTo(.26, .08, .28, .02); ws.quadraticCurveTo(.2, .04, .19, -.03); ws.quadraticCurveTo(.12, 0, .1, -.08); ws.quadraticCurveTo(.06, -.02, 0, 0);
+    const wMat = own(phys({ color: '#3b2470', roughness: .35, clearcoat: .8, side: THREE.DoubleSide, sheen: .8, sheenColor: new THREE.Color('#b68cff') }));
+    this.wings = [-1, 1].map(s => {
+      const piv = new THREE.Group(); I.add(piv);
+      const w = new THREE.Mesh(new THREE.ShapeGeometry(ws, 12), wMat); w.scale.x = s; piv.add(w);
+      piv.userData.s = s; return piv;
+    });
+    // 足・腕（まるいおもち）
+    this.legs = [-1, 1].map(s => { const f = new THREE.Mesh(new THREE.SphereGeometry(.07, 16, 12), bodyMat); f.scale.set(1, .6, 1.3); I.add(f); return f; });
+    const mkArm = s => { const a = new THREE.Group(); I.add(a); const h = new THREE.Mesh(new THREE.SphereGeometry(.06, 16, 12), bodyMat); h.position.y = -.07; a.add(h); return a; };
+    this.armL = mkArm(-1); this.armR = mkArm(1);
+    // 頭＝アップロード画像
+    this.head = new THREE.Group(); I.add(this.head);
+    const hs = new THREE.Group(); this.head.add(hs);
+    hs.add(new THREE.Mesh(new THREE.SphereGeometry(.33, 48, 32), bodyMat));
+    const imgTex = new THREE.Texture(this.img); imgTex.colorSpace = THREE.SRGBColorSpace; imgTex.anisotropy = 8; imgTex.needsUpdate = true;
+    const decalMat = own(phys({ map: imgTex, alphaTest: .5, roughness: .5, clearcoat: .35, clearcoatRoughness: .2, envMapIntensity: .5, color: new THREE.Color(.88, .88, .88) }));
+    const range = [PI / 2 - .31 * PI, .62 * PI, .19 * PI, .62 * PI];
+    hs.add(new THREE.Mesh(new THREE.SphereGeometry(.3325, 64, 48, ...range), decalMat));
+    this.faceTex = canvasTex(512, 512, () => {});
+    const ovMat = own(new THREE.MeshBasicMaterial({ map: this.faceTex, transparent: true, depthWrite: false }));
+    hs.add(new THREE.Mesh(new THREE.SphereGeometry(.337, 64, 48, ...range), ovMat));
+    // 小さな金の王冠
+    const crown = new THREE.Group(); crown.position.set(.06, .31, 0); crown.rotation.z = -.22; hs.add(crown);
+    const cb = new THREE.Mesh(new THREE.CylinderGeometry(.1, .09, .05, 24, 1, true), MAT.gold); cb.material = MAT.gold; crown.add(cb);
+    for (let i = 0; i < 5; i++) {
+      const a = i / 5 * TAU;
+      const sp = new THREE.Mesh(new THREE.ConeGeometry(.022, .07, 8), MAT.gold); sp.position.set(Math.cos(a) * .09, .05, Math.sin(a) * .09); crown.add(sp);
+      const gem = new THREE.Mesh(new THREE.SphereGeometry(.014, 8, 6), i % 2 ? MAT.red : phys({ color: '#4fe0c4', roughness: .1, clearcoat: 1 })); gem.position.set(Math.cos(a) * .1, .0, Math.sin(a) * .1); crown.add(gem);
+    }
+    this.cheeks = [];
+    this.mouthLocal.set(0, -.08, .33);
+  }
+  drawFace(expr, blink) {
+    const g = this.faceTex.userData.g; g.clearRect(0, 0, 512, 512);
+    const sp = FACE_SPEC[expr] || FACE_SPEC.normal;
+    if (sp.blush >= .5) for (const x of [118, 394]) {
+      const gr = g.createRadialGradient(x, 340, 4, x, 340, 50); gr.addColorStop(0, 'rgba(255,110,150,.75)'); gr.addColorStop(1, 'rgba(255,110,150,0)');
+      g.fillStyle = gr; g.fillRect(x - 55, 285, 110, 110);
+      g.strokeStyle = 'rgba(225,60,100,.8)'; g.lineWidth = 5; g.lineCap = 'round'; for (let i = -1; i <= 1; i++) { g.beginPath(); g.moveTo(x + i * 15 - 5, 350); g.lineTo(x + i * 15 + 5, 332); g.stroke(); }
+    }
+    const txt = (s, x, y, size, fill, stroke = '#2a1a45') => { g.font = `900 ${size}px "Zen Maru Gothic",sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = size * .22; g.strokeStyle = stroke; g.strokeText(s, x, y); g.fillStyle = fill; g.fillText(s, x, y); };
+    if (expr === 'smug') txt('(^～^)', 256, 452, 52, '#ffe7a8');
+    if (expr === 'chew1' || expr === 'chew2') txt(expr === 'chew1' ? 'もぐ' : 'もぐもぐ', 256, 452, 50, '#fff');
+    if (expr === 'eat') txt('あーん', 256, 452, 50, '#ffb3c7');
+    if (expr === 'angry') { g.save(); g.translate(420, 96); g.strokeStyle = '#ff3b5c'; g.lineWidth = 12; g.lineCap = 'round'; for (let i = 0; i < 4; i++) { g.save(); g.rotate(i * PI / 2); g.beginPath(); g.moveTo(9, -34); g.quadraticCurveTo(9, -9, 34, -9); g.stroke(); g.restore(); } g.restore(); }
+    if (sp.sweat || expr === 'dizzy') { g.fillStyle = '#8fdcff'; g.strokeStyle = '#2a6f9e'; g.lineWidth = 4; dropPath(g, 440, 110, 30); g.fill(); g.stroke(); }
+    if (expr === 'shock') txt('!!', 108, 96, 76, '#ffd25a');
+    if (sp.tears) { g.fillStyle = 'rgba(120,200,255,.95)'; dropPath(g, 150, 300, 20); g.fill(); dropPath(g, 362, 300, 20); g.fill(); }
+    if (expr === 'happy' || expr === 'love') { g.fillStyle = '#fff6c9'; sparklePath(g, 70, 90, 30); g.fill(); sparklePath(g, 448, 420, 24); g.fill(); g.fillStyle = '#ff5d8f'; heartPath(g, 450, 80, 26); g.fill(); }
+    if (expr === 'dizzy') { g.strokeStyle = '#fff'; g.lineWidth = 6; g.beginPath(); for (let a = 0; a < 5 * PI; a += .2) { const r = a * 3; g.lineTo(256 + Math.cos(a) * r, 60 + Math.sin(a) * r * .5); } g.stroke(); }
+    this.faceTex.needsUpdate = true;
+  }
+  applyFat(f) {
+    const fc = Math.min(f, 1.8), f1 = Math.min(fc, 1.2);
+    const R = .2 + .3 * fc;
+    this.body.scale.set(R, R * .85, R * .95); this.body.position.y = R * .85 + .02;
+    const top = R * 1.7 + .02;
+    this.head.position.y = top + .2; this.head.scale.setScalar(1 + .1 * f1);
+    this.armL.position.set(-R * 1.0, R * .95, 0); this.armR.position.set(R * 1.0, R * .95, 0);
+    this.legs.forEach((l, i) => l.position.set((i ? 1 : -1) * R * .5, .035, R * .35));
+    this.wings.forEach(w => w.position.set(w.userData.s * R * .35, R * 1.2, -R * .75));
+  }
+  animateExtra(dt, t) {
+    const flap = Math.sin(t * (this.armMode === 'up' ? 22 : 5)) * .35;
+    this.wings.forEach(w => { w.rotation.set(0, w.userData.s * (-.5 + flap), w.userData.s * .25); });
+  }
+}
+
+/* =====================================================================
+   9. エフェクト（スプライト・ガラスの破片）
+   ===================================================================== */
+const FX = [];
+function spawnFX(kind, pos, { vel = new V3(), life = 1, size = .12, grow = 0, spin = 0, gravity = 0, parent = null } = {}) {
+  const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: SPR[kind], transparent: true, depthWrite: false }));
+  m.position.copy(pos); m.scale.setScalar(size);
+  m.material.rotation = rand(-.3, .3);
+  (parent || dev).add(m);
+  FX.push({ m, vel, life, age: 0, size, grow, spin, gravity });
+  return m;
+}
+function burst(kind, center, n, { speed = .8, up = .6, life = 1, size = .1, gravity = 1.5, spread = 1 } = {}) {
+  for (let i = 0; i < n; i++) {
+    const a = rand(0, TAU);
+    spawnFX(kind, center.clone().add(new V3(rand(-.05, .05) * spread, rand(-.05, .05), rand(-.02, .05))), {
+      vel: new V3(Math.cos(a) * speed * rand(.4, 1), up + Math.abs(Math.sin(a)) * speed * rand(.3, 1), rand(0, .3)),
+      life: life * rand(.7, 1.2), size: size * rand(.7, 1.3), gravity, spin: rand(-3, 3),
+    });
+  }
+}
+function updateFX(dt) {
+  for (let i = FX.length - 1; i >= 0; i--) {
+    const f = FX[i]; f.age += dt; const p = f.age / f.life;
+    if (p >= 1) { f.m.parent?.remove(f.m); f.m.material.dispose(); FX.splice(i, 1); continue; }
+    f.vel.y -= f.gravity * dt;
+    f.m.position.addScaledVector(f.vel, dt);
+    const pop = p < .15 ? Ease.outBack(p / .15) : 1;
+    f.m.scale.setScalar(f.size * pop * (1 + f.grow * p));
+    f.m.material.opacity = 1 - smooth(.6, 1, p);
+    f.m.material.rotation += f.spin * dt;
+  }
+}
+const shards = [];
+function shatterGlass() {
+  D.glass.visible = false;
+  const mat = phys({ color: '#e8f4ff', transparent: true, opacity: .5, roughness: .05, metalness: .1, clearcoat: 1, side: THREE.DoubleSide, depthWrite: false, envMapIntensity: 2 });
+  for (let i = 0; i < 26; i++) {
+    const s = new THREE.Shape(), r = rand(.06, .2);
+    s.moveTo(0, r); s.lineTo(r * rand(.5, 1), -r * rand(.3, .9)); s.lineTo(-r * rand(.5, 1), -r * rand(.2, .8)); s.closePath();
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(s), mat);
+    const x = rand(-WIN.w / 2 + .15, WIN.w / 2 - .15), y = WIN.cy + rand(-WIN.h / 2 + .15, WIN.h / 2 - .15);
+    m.position.set(x, y, FRONT_Z - .02); m.rotation.z = rand(0, TAU);
+    dev.add(m);
+    shards.push({ m, vel: new V3(x * 1.4 + rand(-.4, .4), (y - WIN.cy) * 1.2 + rand(.6, 1.8), rand(1.2, 2.8)), spin: new V3(rand(-8, 8), rand(-8, 8), rand(-8, 8)), age: 0 });
+  }
+  shards.mat = mat;
+}
+function updateShards(dt) {
+  for (let i = shards.length - 1; i >= 0; i--) {
+    const s = shards[i]; s.age += dt;
+    s.vel.y -= 5 * dt; s.m.position.addScaledVector(s.vel, dt);
+    s.m.rotation.x += s.spin.x * dt; s.m.rotation.y += s.spin.y * dt; s.m.rotation.z += s.spin.z * dt;
+    if (s.age > 2.6) { dev.remove(s.m); s.m.geometry.dispose(); shards.splice(i, 1); }
+  }
+}
+async function restoreGlass() {
+  D.glass.visible = true; D.crackMat.opacity = 0;
+  const glassO = .05, glareO = .22;
+  Sound.play('sparkle');
+  for (let i = 0; i < 10; i++) spawnFX('sparkle', new V3(rand(-.9, .9), WIN.cy + rand(-.7, .7), FRONT_Z), { life: .9, size: .14 });
+  await tween(.6, p => { D.glassMat.opacity = glassO * p; D.glareMat.opacity = glareO * p; });
+}
+
+/* =====================================================================
+   10. 吹き出し・HUD
+   ===================================================================== */
+const bubbleEl = $('#bubble');
+const B = { until: 0, typing: null, anchor: null };
+function fillText(s, food) { return s.replace(/\{NAME\}/g, '愚民').replace(/\{FOOD\}/g, FOOD_NAME[food] || 'だんご'); }
+function say(text, hold = 3.2, food) {
+  const s = fillText(text, food);
+  clearInterval(B.typing);
+  const who = G.avatar ? G.avatar.name : 'ロマ子様';
+  bubbleEl.innerHTML = '';
+  const w = document.createElement('span'); w.className = 'who'; w.textContent = who;
+  const body = document.createElement('span');
+  bubbleEl.append(w, body);
+  bubbleEl.classList.add('show');
+  let i = 0;
+  const chars = [...s];
+  B.typing = setInterval(() => {
+    i++; body.textContent = chars.slice(0, i).join('');
+    if (i % 2 === 0) Sound.play('type');
+    if (i >= chars.length) clearInterval(B.typing);
+  }, 34);
+  B.until = time + hold + chars.length * .05;
+  G.idleT = rand(14, 22);
+}
+function placeBubble() {
+  if (!bubbleEl.classList.contains('show')) return;
+  if (time > B.until) { bubbleEl.classList.remove('show'); return; }
+  const A = G.avatar; if (!A) return;
+  const w = innerWidth, h = innerHeight;
+  // 画面が正面を向いているときだけキャラの頭の上に出す
+  _tmp.set(0, 0, 1).applyQuaternion(devRoot.quaternion);
+  _tmp2.copy(camera.position).sub(devRoot.position).normalize();
+  const facing = _tmp.dot(_tmp2);
+  let x, y;
+  if (facing > .25) {
+    A.root.updateMatrixWorld(true);
+    const p = A.head.localToWorld(new V3(0, .52, 0)).project(camera);
+    x = (p.x + 1) / 2 * w; y = (1 - p.y) / 2 * h - 10;
+  } else { x = w / 2; y = VIEW.top + 90; }
+  const bw = bubbleEl.offsetWidth, bh = bubbleEl.offsetHeight;
+  const cx = clamp(x, bw / 2 + 10, w - bw / 2 - 10);
+  const cy = clamp(y, bh + VIEW.top * .6 + 8, h - 20);
+  bubbleEl.style.left = cx + 'px'; bubbleEl.style.top = cy + 'px';
+  bubbleEl.style.setProperty('--tx', `calc(50% + ${clamp(x - cx, -bw / 2 + 22, bw / 2 - 22)}px)`);
+}
+const statEls = {};
+document.querySelectorAll('.stat').forEach(el => statEls[el.dataset.k] = { el, bar: el.querySelector('i'), num: el.querySelector('em') });
+const TAG = ['スレンダー', 'ぽっちゃり', 'まんまる', '限界寸前', 'アウト'];
+function hud() {
+  for (const k of ['hunger', 'mood', 'clean']) {
+    const v = Math.round(S[k]), e = statEls[k];
+    e.bar.style.width = v + '%'; e.num.textContent = v; e.el.classList.toggle('low', v < 25);
+  }
+  $('#kg').textContent = (41.5 + S.fat * 118).toFixed(1) + 'kg';
+  const st = fatStageOf(S.fat), tag = $('#bodyTag');
+  tag.textContent = TAG[st]; tag.className = 'tag s' + st;
+  $('#age').textContent = (Math.floor((Date.now() - S.born) / 86400000) + 1) + '日目';
+  $('#outs').textContent = S.outs;
+  if (G.avatar) $('#charName').textContent = G.avatar.name;
+}
+let toastT = null;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 3800); }
+
+/* =====================================================================
+   11. ゲーム進行
+   ===================================================================== */
+const G = { avatar: null, busy: false, outActive: false, poops: [], pokes: [], idleT: 8, wanderT: 4, poopIn: rand(90, 160), sec: 0, beepT: 30, saveT: 5 };
+let time = 0, lastNow = performance.now();   // 経過時間（秒）
+
+function baseExprFor() {
+  if (S.hunger < 20) return 'hungry';
+  if (S.poops >= 2 || S.mood < 20) return 'angry';
+  if (S.mood < 35) return 'sad';
+  if (S.fat >= .8) return 'shock';
+  return 'normal';
+}
+function nudge() { const A = G.avatar; A.kick(1); Sound.play('click'); if (Math.random() < .3) say(pick(L.busy), 1.5); }
+
+async function actFeed() {
+  if (G.busy) return nudge();
+  G.busy = true;
+  const A = G.avatar;
+  try {
+    A.stopWalk();
+    const kind = Math.random() < .62 ? 'dango' : 'onigiri';
+    const food = makeFood(kind);
+    const x = A.root.position.x;
+    food.position.set(x + rand(-.04, .04), WIN.cy + WIN.h / 2 - .2, A.root.position.z + .2);
+    food.scale.setScalar(.01); dev.add(food);
+    Sound.play('drop');
+    A.setExpr('normal', 3); A.lookUp = 1;
+    spawnFX('sparkle', food.position.clone(), { life: .5, size: .2 });
+    await tween(.2, p => food.scale.setScalar(lerp(.01, kind === 'dango' ? 1 : 1.15, Ease.outBack(p))));
+    const mouth = A.mouthIn(dev);
+    const y0 = food.position.y;
+    await tween(.45, p => { food.position.y = lerp(y0, mouth.y + .09, Ease.inCubic(p)); food.rotation.z += .08; });
+    A.setExpr('eat', 1); A.lookUp = 0;
+    const p0 = food.position.clone(), m1 = A.mouthIn(dev), s0 = food.scale.x;
+    await tween(.15, p => { food.position.lerpVectors(p0, m1, p); food.scale.setScalar(s0 * (1 - p)); });
+    dev.remove(food);
+    for (let i = 0; i < 4; i++) {
+      A.setExpr(i % 2 ? 'chew2' : 'chew1', .6); A.kick(1.3); Sound.play('chomp');
+      burst('crumb', A.mouthIn(dev), 2, { speed: .5, up: .3, life: .5, size: .035, gravity: 2 });
+      await wait(.2);
+    }
+    const before = fatStageOf(S.fat), over = S.hunger > 80;
+    S.hunger = clamp(S.hunger + 22, 0, 100);
+    S.fat = clamp(S.fat + (over ? .15 : S.hunger > 60 ? .08 : .04), 0, 1);
+    S.mood = clamp(S.mood + 4, 0, 100);
+    A.fat = S.fat; A.kick(2.4);
+    Sound.play('happy');
+    burst('heart', A.mouthIn(dev).add(new V3(0, .15, 0)), 4, { speed: .5, up: .5, life: 1.1, size: .09, gravity: -.1 });
+    A.setExpr(over ? 'smug' : 'happy', 2.4);
+    const after = fatStageOf(S.fat);
+    if (after > before && after < 4) say(L.fatUp[after], 3.5);
+    else if (after < 4) say(pick(over ? L.overfeed : L.feed), 3, kind);
+    S.fatStage = after;
+    if (Math.random() < .55) G.poopIn = Math.min(G.poopIn, rand(8, 16));
+    saveState(); hud();
+  } finally { G.busy = false; }
+  if (S.fat >= 1) await triggerOut();
+}
+
+async function actPlay() {
+  if (G.busy) return nudge();
+  const A = G.avatar;
+  if (S.hunger < 10) { A.setExpr('angry', 2); A.kick(1.5); spawnFX('anger', A.mouthIn(dev).add(new V3(.2, .25, 0)), { life: 1.2, size: .14 }); say(pick(L.playRefuse), 2.5); return; }
+  G.busy = true;
+  try {
+    A.stopWalk();
+    const heavy = S.fat > .65;
+    A.setExpr(heavy ? 'shock' : 'happy', 4); A.armMode = 'up';
+    const before = fatStageOf(S.fat);
+    const loss = heavy ? .13 : .09;
+    for (let j = 0; j < 3; j++) {
+      const hgt = heavy ? .08 : .26, dur = heavy ? .5 : .55;
+      await tween(.1, p => { A.spring.x = .22 * p; });
+      Sound.play('jump');
+      const spin = !heavy && j === 1;
+      await tween(dur, p => { A.jumpY = 4 * hgt * p * (1 - p); if (spin) A.spin = p * TAU; });
+      A.jumpY = 0; A.spin = 0; A.kick(2 + A.fatShown * 1.5); Sound.play('land');
+      S.fat = clamp(S.fat - loss / 3, 0, 1); A.fat = S.fat;
+      const c = new V3(A.root.position.x, FLOOR_Y + .5, A.root.position.z + .15);
+      if (heavy) burst('drop', c.add(new V3(0, .3, 0)), 3, { speed: .6, up: .4, life: .7, size: .07, gravity: 2 });
+      else { burst('note', c, 2, { speed: .5, up: .6, life: 1, size: .12, gravity: -.2 }); burst('star', c, 2, { speed: .7, up: .5, life: .8, size: .08, gravity: 1 }); }
+    }
+    A.armMode = 'rest';
+    S.mood = clamp(S.mood + 18, 0, 100); S.hunger = clamp(S.hunger - 7, 0, 100);
+    const after = fatStageOf(S.fat);
+    A.setExpr(heavy ? 'dizzy' : 'smug', 2.2);
+    Sound.play('happy');
+    if (after === 0 && before > 0) say(pick(L.slim), 3);
+    else say(pick(heavy ? L.playHeavy : L.play), 3);
+    S.fatStage = after;
+    saveState(); hud();
+  } finally { G.busy = false; A.armMode = 'rest'; A.jumpY = 0; A.spin = 0; }
+}
+
+async function actClean() {
+  if (G.busy) return nudge();
+  const A = G.avatar;
+  G.busy = true;
+  try {
+    if (!G.poops.length) {
+      Sound.play('sparkle');
+      for (let i = 0; i < 8; i++) spawnFX('sparkle', new V3(rand(-.8, .8), FLOOR_Y + rand(.05, .9), rand(0, .3)), { life: .8, size: .12 });
+      S.clean = 100; A.setExpr('smug', 2); say(pick(L.cleanNone), 3);
+      hud(); saveState(); return;
+    }
+    A.stopWalk();
+    const wave = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 20), phys({ color: '#6fd6ff', transparent: true, opacity: .55, roughness: .05, clearcoat: 1, emissive: new THREE.Color('#1b6f9a'), emissiveIntensity: .35, depthWrite: false }));
+    wave.scale.set(.22, .34, .3); wave.position.set(-1.3, FLOOR_Y + .12, .12); dev.add(wave);
+    Sound.play('flush');
+    let jumped = false;
+    await tween(1.4, p => {
+      const x = lerp(-1.3, 1.4, p);
+      wave.position.x = x; wave.scale.y = .34 + Math.sin(p * 30) * .03;
+      if (Math.random() < .5) spawnFX('bubble', new V3(x + rand(-.1, .1), FLOOR_Y + rand(.05, .4), rand(0, .3)), { vel: new V3(rand(-.1, .3), rand(.2, .6), 0), life: .8, size: rand(.04, .08), gravity: -.2 });
+      for (const pp of G.poops) {
+        if (pp.m.position.x < x + .18) { pp.m.position.x = x + .18; pp.m.rotation.z -= .15; pp.m.position.y = FLOOR_Y + Math.sin(p * 20) * .02 + .04; }
+      }
+      if (!jumped && x > A.root.position.x - .35) { jumped = true; A.setExpr('shock', .8); tween(.5, q => A.jumpY = 4 * .3 * q * (1 - q)); }
+    });
+    A.jumpY = 0;
+    for (const pp of G.poops) { dev.remove(pp.m); }
+    G.poops.length = 0; S.poops = 0;
+    dev.remove(wave); wave.geometry.dispose(); wave.material.dispose();
+    Sound.play('sparkle');
+    for (let i = 0; i < 12; i++) spawnFX('sparkle', new V3(rand(-.85, .85), FLOOR_Y + rand(.05, 1), rand(0, .3)), { life: 1, size: rand(.08, .16) });
+    S.clean = 100; S.mood = clamp(S.mood + 6, 0, 100);
+    A.setExpr('happy', 2.5); A.kick(1.8);
+    say(pick(L.clean), 3);
+    saveState(); hud();
+  } finally { G.busy = false; }
+}
+
+function spawnPoop(silent = false) {
+  const A = G.avatar;
+  const slots = [-.66, .66, -.46, .46, -.26, .26];
+  const ax = A ? A.root.position.x : 0;
+  const free = slots.filter(x => !G.poops.some(p => Math.abs(p.x - x) < .12)).sort((a, b) => Math.abs(b - ax) - Math.abs(a - ax));
+  if (!free.length) return;
+  const x = free[0] + rand(-.03, .03);
+  const m = makePoop(); m.position.set(x, FLOOR_Y, .24); m.rotation.y = rand(-.4, .4); m.scale.setScalar(.01); dev.add(m);
+  G.poops.push({ m, x, stinkT: rand(0, 1) });
+  S.poops = G.poops.length;
+  if (silent) { m.scale.setScalar(.85); return; }
+  tween(.6, q => m.scale.setScalar(.85 * Ease.outElastic(q)));
+  Sound.play('poop');
+  if (A && !G.busy) { A.setExpr('sad', 2); if (Math.random() < .7) say(pick(L.poop), 3); }
+  hud();
+}
+
+async function triggerOut() {
+  if (G.outActive) return;
+  G.busy = true; G.outActive = true;
+  const A = G.avatar;
+  try {
+    A.stopWalk();
+    Sound.play('alarm');
+    A.setExpr('shock', 9);
+    D.crackMat.opacity = 1;
+    $('#outfx').classList.add('on'); document.body.classList.add('shake');
+    const x0 = A.root.position.x, z0 = A.root.position.z;
+    A.fatOverride = 1;
+    await tween(1, p => {
+      A.fatOverride = lerp(1, 1.68, Ease.outElastic(p));
+      A.root.position.z = lerp(z0, .3, Ease.outCubic(p));
+      A.root.position.x = lerp(x0, 0, p);
+    });
+    shatterGlass(); Sound.play('glass'); CAM.shake = .3;
+    burst('star', new V3(0, WIN.cy, FRONT_Z + .1), 10, { speed: 1.6, up: .8, life: 1.2, size: .12, gravity: 2 });
+    say(L.out, 2.2);
+    await wait(2);
+    $('#outfx').classList.remove('on'); document.body.classList.remove('shake');
+    // しぼみながら画面の中を飛び回る
+    Sound.play('deflate'); A.setExpr('dizzy', 5);
+    const pts = [new V3(0, FLOOR_Y, .3)];
+    for (let i = 0; i < 6; i++) pts.push(new V3(rand(-.55, .55), FLOOR_Y + rand(.15, .55), rand(.0, .2)));
+    pts.push(new V3(0, FLOOR_Y + .25, .05));
+    const curve = new THREE.CatmullRomCurve3(pts);
+    let puffT = 0;
+    await tween(1.7, p => {
+      curve.getPoint(p, A.root.position);
+      A.fatOverride = lerp(1.68, .5, Ease.outCubic(p));
+      A.roll = p * TAU * 3; A.spin = Math.sin(p * 20) * .5;
+      puffT -= 1 / 60;
+      if (puffT < 0) { puffT = .05; spawnFX('puff', A.root.position.clone().add(new V3(rand(-.1, .1), .1, -.05)), { life: .6, size: .12, grow: 1.2 }); }
+    });
+    A.roll = 0; A.spin = 0;
+    await tween(.3, p => { A.root.position.y = lerp(FLOOR_Y + .25, FLOOR_Y, Ease.inCubic(p)); });
+    A.root.position.set(0, FLOOR_Y, .05);
+    A.fatOverride = null; A.fatShown = .5;
+    S.fat = .5; A.fat = .5; S.outs++; S.fatStage = fatStageOf(.5); S.hunger = Math.min(S.hunger, 60);
+    A.kick(3); Sound.play('land');
+    say('目が…目が回るのだわわ〜…', 1.6);
+    await wait(1.4);
+    await restoreGlass();
+    A.setExpr('smug', 3);
+    say(pick(L.afterOut), 3.5);
+    saveState(); hud();
+  } finally {
+    G.busy = false; G.outActive = false;
+    A.fatOverride = null; A.roll = 0; A.spin = 0;
+    $('#outfx').classList.remove('on'); document.body.classList.remove('shake');
+  }
+}
+
+async function summon(make, line) {
+  if (G.busy) { toast('いまは手が離せないのだわわ…少し待ってね'); return false; }
+  G.busy = true;
+  try {
+    Sound.play('summon');
+    D.magic.visible = true; D.magic.material.opacity = 0;
+    tween(.5, p => { D.magic.material.opacity = p; D.magic.scale.setScalar(lerp(.2, 1, Ease.outBack(p))); });
+    const old = G.avatar;
+    if (old) {
+      old.stopWalk();
+      await tween(.55, p => { old.spawn = 1 - Ease.inCubic(p); old.spin = p * TAU * 2; });
+      dev.remove(old.root); old.dispose();
+    }
+    const A = make();
+    A.root.position.set(0, FLOOR_Y, .05); A.spawn = .001; A.fat = S.fat; A.fatShown = S.fat;
+    dev.add(A.root); G.avatar = A;
+    D.innerLight.intensity = 9;
+    burst('sparkle', new V3(0, FLOOR_Y + .4, .15), 14, { speed: 1.2, up: .6, life: 1.1, size: .13, gravity: .6 });
+    burst('heart', new V3(0, FLOOR_Y + .6, .15), 5, { speed: .8, up: .6, life: 1.2, size: .09, gravity: -.1 });
+    await tween(.85, p => { A.spawn = Ease.outBack(p); A.spin = (1 - p) * TAU * 1.5; D.innerLight.intensity = lerp(9, 1.8, p); });
+    A.spin = 0; A.armMode = 'wave'; A.setExpr('smug', 2.5);
+    setTimeout(() => { if (G.avatar === A && A.armMode === 'wave') A.armMode = 'rest'; }, 2200);
+    tween(.8, p => { D.magic.material.opacity = 1 - p; D.magic.rotation.z += .02; }).then(() => D.magic.visible = false);
+    say(line, 3.5);
+    $('#revert').hidden = A.kind === 'romaco';
+    hud();
+    return true;
+  } finally { G.busy = false; }
+}
+
+/* 画像を読み込んで円形に切り抜く（画像は端末内だけで使う） */
+async function processImage(src) {
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = src;
+  await img.decode();
+  const S2 = 512, c = document.createElement('canvas'); c.width = c.height = S2;
+  const g = c.getContext('2d');
+  const s = Math.min(img.naturalWidth, img.naturalHeight);
+  if (!s) throw new Error('empty image');
+  // 中央を正方形に切り抜いて円にする
+  g.save(); g.beginPath(); g.arc(S2 / 2, S2 / 2, S2 / 2 - 22, 0, TAU); g.clip();
+  g.drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, S2, S2);
+  g.restore();
+  g.lineWidth = 16; g.strokeStyle = '#ffffff'; g.beginPath(); g.arc(S2 / 2, S2 / 2, S2 / 2 - 22, 0, TAU); g.stroke();
+  g.lineWidth = 6; g.strokeStyle = '#f2c14e'; g.beginPath(); g.arc(S2 / 2, S2 / 2, S2 / 2 - 12, 0, TAU); g.stroke();
+  // 平均色（体の色に使う）
+  const t = document.createElement('canvas'); t.width = t.height = 12;
+  const tg = t.getContext('2d'); tg.drawImage(img, 0, 0, 12, 12);
+  const d = tg.getImageData(0, 0, 12, 12).data; let r = 0, gg = 0, b = 0, n = 0;
+  for (let i = 0; i < d.length; i += 4) { if (d[i + 3] < 30) continue; r += d[i]; gg += d[i + 1]; b += d[i + 2]; n++; }
+  n = n || 1;
+  const color = '#' + [r / n, gg / n, b / n].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+  // 保存用の小さい画像
+  const small = document.createElement('canvas'); small.width = small.height = 256;
+  small.getContext('2d').drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, 256, 256);
+  let dataURL = null;
+  try { dataURL = small.toDataURL('image/jpeg', .86); } catch (e) {}
+  return { canvas: c, color, dataURL };
+}
+async function summonFromFile(file) {
+  if (!file) return;
+  if (!/^image\//.test(file.type)) { toast('画像ファイルを選んでね（PNG / JPG / WebP など）'); return; }
+  if (file.size > 25 * 1024 * 1024) { toast('画像が大きすぎるみたい（25MBまで）'); return; }
+  const url = URL.createObjectURL(file);
+  try {
+    const r = await processImage(url);
+    const ok = await summon(() => new Mascot(r.canvas, r.color), pick(L.summon));
+    if (ok) { S.custom = r.dataURL ? { img: r.dataURL, color: r.color } : null; saveState(); }
+  } catch (e) {
+    console.warn(e);
+    toast('この画像は読み込めなかったのだわわ…別の画像で試してね');
+  } finally { URL.revokeObjectURL(url); }
+}
+
+/* 放置中のふるまい（1秒ごと） */
+function tickSecond() {
+  const A = G.avatar;
+  S.hunger = clamp(S.hunger - RATE.hunger, 0, 100);
+  S.mood = clamp(S.mood - RATE.mood * (S.poops ? 1.6 : 1) * (S.hunger < 20 ? 1.5 : 1), 0, 100);
+  S.clean = clamp(S.clean - RATE.dirt * S.poops, 0, 100);
+  if (!G.outActive) {
+    S.fat = clamp(S.fat - RATE.fat, 0, 1); A.fat = S.fat;
+    const st = fatStageOf(S.fat);
+    if (st < S.fatStage && st === 0 && !G.busy) say(pick(L.slim), 3);
+    if (st < S.fatStage) S.fatStage = st;
+  }
+  G.poopIn -= 1;
+  if (G.poopIn <= 0) { if (!G.busy && G.poops.length < 4) spawnPoop(); G.poopIn = rand(100, 200); }
+  A.baseExpr = baseExprFor();
+  if (A.exprHold <= 0) A.expr = A.baseExpr;
+  G.beepT -= 1;
+  if (G.beepT <= 0) { G.beepT = 30; if (S.hunger < 20 || S.mood < 20 || S.poops >= 3) { Sound.play('beep'); A.kick(1); } }
+  G.saveT -= 1; if (G.saveT <= 0) { G.saveT = 5; saveState(); }
+  hud();
+}
+function idleLine() {
+  if (S.hunger < 30) return pick(L.hungry);
+  if (S.poops >= 2) return pick(L.dirty);
+  if (S.mood < 30) return pick(L.bored);
+  if (S.fat >= .8) return pick(L.fatIdle);
+  return pick(L.idle);
+}
+
+/* =====================================================================
+   12. 入力（ドラッグ回転・タップ・キーボード・ドロップ）
+   ===================================================================== */
+const ROT = { yaw: 0, pitch: .06, vy: 0, vp: 0, idle: 0 };
+const CAM = { zoom: 1, base: 12, shake: 0 };
+const VIEW = { top: 80, bottom: 600 };
+const ptr = new THREE.Vector2(0, 0), ptrNDC = new THREE.Vector2();
+const pointers = new Map();
+let pinch = null;
+const raycaster = new THREE.Raycaster();
+
+function ndcOf(e) { const r = canvas.getBoundingClientRect(); return ptrNDC.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); }
+function hitTest(e) {
+  raycaster.setFromCamera(ndcOf(e), camera);
+  const caps = D.buttons.map(b => b.cap);
+  const targets = [...caps, G.avatar.root, ...D.shell];
+  const hits = raycaster.intersectObjects(targets, true);
+  if (!hits.length) return null;
+  const o = hits[0].object;
+  if (o.userData.btn != null) return { type: 'btn', i: o.userData.btn };
+  let p = o; while (p) { if (p === G.avatar.root) return { type: 'avatar' }; p = p.parent; }
+  return { type: 'shell' };
+}
+canvas.addEventListener('pointerdown', e => {
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now() });
+  if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: CAM.zoom }; }
+  canvas.classList.add('dragging'); ROT.idle = 0; ROT.vy = 0; ROT.vp = 0;
+  hideHint();
+});
+canvas.addEventListener('pointermove', e => {
+  const r = canvas.getBoundingClientRect();
+  ptr.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  const p = pointers.get(e.pointerId);
+  if (!p) {
+    if (e.pointerType === 'mouse' && G.avatar) { const h = hitTest(e); canvas.classList.toggle('hover', !!h && h.type !== 'shell'); }
+    return;
+  }
+  const dx = e.clientX - p.x, dy = e.clientY - p.y;
+  p.x = e.clientX; p.y = e.clientY;
+  if (pointers.size === 1) {
+    ROT.yaw += dx * .0095; ROT.pitch = clamp(ROT.pitch + dy * .006, -.75, .75);
+    ROT.vy = lerp(ROT.vy, dx * .0095 * 60, .5); ROT.vp = lerp(ROT.vp, dy * .006 * 60, .5);
+    ROT.idle = 0;
+  } else if (pointers.size === 2 && pinch) {
+    const [a, b] = [...pointers.values()];
+    CAM.zoom = clamp(pinch.z * pinch.d / Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), .6, 1.7);
+  }
+});
+function endPointer(e) {
+  const p = pointers.get(e.pointerId);
+  if (!p) return;
+  const moved = Math.hypot(e.clientX - p.sx, e.clientY - p.sy), dt = performance.now() - p.t;
+  const single = pointers.size === 1;
+  pointers.delete(e.pointerId);
+  if (pointers.size < 2) pinch = null;
+  if (!pointers.size) canvas.classList.remove('dragging');
+  if (e.type === 'pointerup' && single && moved < 8 && dt < 500 && G.avatar) {
+    ROT.vy = 0; ROT.vp = 0;
+    const h = hitTest(e);
+    if (!h) return;
+    if (h.type === 'btn') pressButton(h.i);
+    else if (h.type === 'avatar') poke();
+    else { Sound.play('boing'); SH.v += 2.2; }
+  }
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('wheel', e => { e.preventDefault(); CAM.zoom = clamp(CAM.zoom * Math.exp(e.deltaY * .001), .6, 1.7); }, { passive: false });
+
+const SH = { x: 0, v: 0 };  // 筐体のボヨン
+const ACTIONS = [actFeed, actPlay, actClean];
+function pressButton(i) {
+  const b = D.buttons[i]; b.press = 1; b.glow = 1;
+  Sound.play('click');
+  const el = document.querySelector(`.act[data-btn="${i}"]`);
+  el.classList.add('pressed'); setTimeout(() => el.classList.remove('pressed'), 160);
+  hideHint();
+  ACTIONS[i]();
+}
+document.querySelectorAll('.act').forEach(el => el.addEventListener('click', () => pressButton(+el.dataset.btn)));
+function poke() {
+  const A = G.avatar, now = time;
+  A.kick(2.4 + A.fatShown * 1.6); Sound.play('boing');
+  G.pokes = G.pokes.filter(x => now - x < 4); G.pokes.push(now);
+  const top = A.mouthIn(dev).add(new V3(.18, .25, .05));
+  if (G.busy) return;
+  if (G.pokes.length >= 5) { A.setExpr('angry', 2.5); spawnFX('anger', top, { life: 1.2, size: .16 }); say(pick(L.pokeRage), 2.5); S.mood = clamp(S.mood - 3, 0, 100); G.pokes.length = 0; }
+  else if (A.fatShown > .5 && Math.random() < .6) { A.setExpr('shock', 1.5); spawnFX('bang', top, { life: 1, size: .16 }); say(pick(L.pokeFat), 2.5); }
+  else { A.setExpr(pick(['happy', 'smug', 'love']), 1.6); spawnFX('heart', top, { vel: new V3(0, .4, 0), life: 1, size: .11 }); say(pick(L.poke), 2.2); S.mood = clamp(S.mood + 2, 0, 100); }
+  hud();
+}
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input,textarea')) return;
+  if ($('#help').classList.contains('on')) { if (e.key === 'Escape') closeHelp(); return; }
+  if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  const i = { a: 0, '1': 0, b: 1, '2': 1, c: 2, '3': 2 }[k];
+  if (i != null && G.avatar) { e.preventDefault(); pressButton(i); }
+});
+
+// 画像のドロップ・選択・貼り付け
+const dropEl = $('#drop'); let dragDepth = 0;
+const hasFiles = e => e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files');
+addEventListener('dragenter', e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; dropEl.classList.add('on'); });
+addEventListener('dragover', e => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+addEventListener('dragleave', e => { if (!hasFiles(e)) return; dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) dropEl.classList.remove('on'); });
+addEventListener('drop', e => {
+  if (!hasFiles(e)) return;
+  e.preventDefault(); dragDepth = 0; dropEl.classList.remove('on');
+  const f = [...e.dataTransfer.files].find(f => /^image\//.test(f.type)) || e.dataTransfer.files[0];
+  summonFromFile(f);
+});
+addEventListener('paste', e => {
+  const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
+  if (item) summonFromFile(item.getAsFile());
+});
+$('#file').addEventListener('change', e => { summonFromFile(e.target.files[0]); e.target.value = ''; });
+$('#fileLabel').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#file').click(); } });
+$('#revert').addEventListener('click', async () => {
+  const ok = await summon(() => new Romaco(), pick(L.revert));
+  if (ok) { S.custom = null; saveState(); }
+});
+function syncSoundUI() {
+  $('#soundLabel').textContent = Sound.on ? '音 ON' : '音 OFF';
+  $('#sound').setAttribute('aria-pressed', String(Sound.on));
+  $('#soundWave').setAttribute('opacity', Sound.on ? '1' : '.3');
+}
+$('#sound').addEventListener('click', () => { Sound.setOn(!Sound.on); S.sound = Sound.on; syncSoundUI(); Sound.play('happy'); saveState(); });
+function openHelp() { $('#help').classList.add('on'); $('#helpClose').focus(); }
+function closeHelp() { $('#help').classList.remove('on'); $('#helpBtn').focus(); }
+$('#helpBtn').addEventListener('click', openHelp);
+$('#helpClose').addEventListener('click', closeHelp);
+$('#help').addEventListener('click', e => { if (e.target.id === 'help') closeHelp(); });
+$('#resetBtn').addEventListener('click', () => {
+  if (!confirm('育成データ（ステータス・召喚した画像）をリセットしますか？')) return;
+  resetting = true;
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  location.reload();
+});
+let hintHidden = false;
+function hideHint() { if (hintHidden) return; hintHidden = true; setTimeout(() => $('#hint').classList.add('hide'), 2500); }
+addEventListener('visibilitychange', () => {
+  if (document.hidden) { saveState(); return; }
+  // 裏に回していた間のぶんを反映（うんちも増える）
+  if (!G.avatar || G.busy) return;
+  const before = S.poops, el = applyAway();
+  if (el < 30) return;
+  for (let i = G.poops.length; i < S.poops; i++) spawnPoop(true);
+  S.poops = G.poops.length;
+  if (S.poops > before) say(pick(L.dirty), 3); else if (S.hunger < 30) say(pick(L.hungry), 3);
+  hud();
+});
+addEventListener('pagehide', saveState);
+
+/* =====================================================================
+   13. レイアウト（HUDに隠れない位置に筐体を置く）
+   ===================================================================== */
+const OBJ_H = 4.55, OBJ_W = 3.8;
+function layout() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h); composer.setSize(w, h);
+  const st = $('#stats').getBoundingClientRect(), ct = $('.controls').getBoundingClientRect(), tl = $('.tools').getBoundingClientRect(), br = $('.brand').getBoundingClientRect();
+  let top = br.bottom + 6;
+  if (st.width > w * .6) top = Math.max(top, st.bottom + 6);
+  let bottom = ct.top - 6;
+  if (tl.left > w * .15 && tl.right < w * .85) bottom = Math.min(bottom, tl.top - 6);
+  if (bottom - top < h * .35) { top = h * .1; bottom = h * .82; }
+  VIEW.top = top; VIEW.bottom = bottom;
+  const fh = bottom - top, cy = (top + bottom) / 2;
+  camera.aspect = w / h;
+  const tan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  CAM.base = Math.max(OBJ_H * h / (fh * 2 * tan), OBJ_W * h / (w * .96 * 2 * tan));
+  camera.setViewOffset(w, h, 0, h / 2 - cy, w, h);
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', layout);
+
+/* =====================================================================
+   14. メインループ
+   ===================================================================== */
+function frame() {
+  const now = performance.now(), dt = Math.min((now - lastNow) / 1000, .05);
+  lastNow = now;
+  time += dt;
+  updateTweens(dt);
+
+  // 筐体の回転（ドラッグ＋慣性＋放置時は正面へゆらゆら戻る）
+  if (!pointers.size) {
+    ROT.idle += dt;
+    ROT.yaw += ROT.vy * dt; ROT.pitch += ROT.vp * dt;
+    ROT.vy *= Math.exp(-2.2 * dt); ROT.vp *= Math.exp(-4 * dt);
+    if (ROT.idle > 2.5 && Math.abs(ROT.vy) < .6) {
+      const sway = reduceMotion ? 0 : 1;
+      const home = Math.round(ROT.yaw / TAU) * TAU + Math.sin(time * .45) * .3 * sway;
+      ROT.yaw = damp(ROT.yaw, home, 1.1, dt);
+      ROT.pitch = damp(ROT.pitch, .05 + Math.sin(time * .6) * .04 * sway, 1.2, dt);
+    }
+    ROT.pitch = clamp(ROT.pitch, -.75, .75);
+  }
+  const bob = reduceMotion ? 0 : Math.sin(time * 1.1) * .08;
+  devRoot.position.y = bob + INTRO.y;
+  devRoot.rotation.set(ROT.pitch, ROT.yaw, reduceMotion ? 0 : Math.sin(time * .8) * .03);
+  SH.v += (-220 * SH.x - 9 * SH.v) * dt; SH.x += SH.v * dt;
+  dev.scale.set(INTRO.s * (1 + SH.x * .04), INTRO.s * (1 - SH.x * .05), INTRO.s * (1 + SH.x * .04));
+  devRoot.updateMatrixWorld(true);
+
+  // ボタンの押し込み
+  for (const b of D.buttons) {
+    b.press = damp(b.press, 0, 9, dt); b.glow = damp(b.glow, 0, 3, dt);
+    b.cap.position.z = .02 - b.press * .045;
+    b.cap.material.emissiveIntensity = .08 + b.glow * .9;
+  }
+  // ヒビ（限界に近いほど入る）
+  if (!G.outActive && D.glass.visible) D.crackMat.opacity = damp(D.crackMat.opacity, smooth(.8, 1, S.fat) * .9, 3, dt);
+
+  // キャラ
+  const A = G.avatar;
+  if (A) {
+    A.update(dt, time, ptr);
+    D.blob.position.x = A.root.position.x;
+    const bs = (.55 + A.fatShown * .7) * A.spawn * (1 - clamp(A.jumpY * 2, 0, .5));
+    D.blob.scale.set(bs, bs * .7, 1);
+    D.blob.visible = !G.outActive;
+    // おさんぽ
+    if (!G.busy) {
+      G.wanderT -= dt;
+      if (G.wanderT <= 0) {
+        G.wanderT = rand(3.5, 7);
+        if (A.fatShown < .85 && Math.random() < .7) A.walkTo(rand(-.42, .42) * (1 - A.fatShown * .6));
+        else if (Math.random() < .5) { A.jumpY = 0; tween(.35, p => { if (!G.busy) A.jumpY = 4 * .06 * p * (1 - p); }).then(() => { if (!G.busy) A.jumpY = 0; A.kick(1); }); }
+      }
+      G.idleT -= dt;
+      if (G.idleT <= 0 && !bubbleEl.classList.contains('show')) { say(idleLine(), 3); }
+    }
+    if (D.magic.visible) D.magic.rotation.z += dt * .8;
+  }
+  // うんちの湯気
+  for (const p of G.poops) {
+    p.stinkT -= dt;
+    if (p.stinkT < 0) { p.stinkT = rand(.7, 1.2); spawnFX('stink', p.m.position.clone().add(new V3(rand(-.03, .03), .25, 0)), { vel: new V3(0, .18, 0), life: 1.3, size: .1 }); }
+    p.m.scale.y = p.m.scale.x * (1 + Math.sin(time * 6 + p.x * 10) * .04);
+  }
+  G.sec += dt;
+  if (G.sec >= 1 && A) { G.sec -= 1; tickSecond(); }
+
+  updateFX(dt); updateShards(dt);
+  stepChain(dt);
+
+  // 背景
+  gridMat.uniforms.uTime.value = time;
+  haloRing.scale.setScalar(1 + Math.sin(time * 1.6) * .03); haloRing.material.opacity = .45 + Math.sin(time * 1.6) * .15;
+  haloRing2.material.opacity = .25 + Math.sin(time * 1.2 + 1) * .1;
+  scene.getObjectByName('stars').rotation.y = time * .006;
+  for (const o of orbs) { const u = o.userData, a = time * u.sp + u.ph; o.position.set(Math.cos(a) * u.r, u.y + Math.sin(time * .7 + u.ph) * .5, Math.sin(a) * u.r - 3); }
+
+  // カメラ
+  CAM.shake = damp(CAM.shake, 0, 3, dt);
+  const d = CAM.base * CAM.zoom;
+  camera.position.set(rand(-1, 1) * CAM.shake * .3, .3 + rand(-1, 1) * CAM.shake * .3, d);
+  camera.lookAt(0, .05, 0);
+
+  placeBubble();
+  composer.render();
+}
+
+/* =====================================================================
+   15. 起動
+   ===================================================================== */
+const INTRO = { y: 0, s: 1 };
+async function boot() {
+  // Canvasに描く文字のためにフォントを待つ（最大2.5秒）
+  try {
+    await Promise.race([
+      Promise.all([document.fonts.load('900 80px "Zen Maru Gothic"', 'KINTAMAGOTCHIあ'), document.fonts.load('700 40px "Zen Maru Gothic"', '食卓の魔王'), document.fonts.load('400 40px "DotGothic16"', 'ABCごはん')]),
+      new Promise(r => setTimeout(r, 2500)),
+    ]);
+  } catch (e) {}
+  buildMaterials(); buildSprites(); buildDevice(); buildChain();
+
+  const away = loadState();
+  Sound.setOn(!!S.sound); syncSoundUI();
+  layout();
+
+  // キャラを用意（保存された画像があれば、そのマスコットで復帰）
+  let A = null;
+  if (S.custom && S.custom.img) {
+    try { const r = await processImage(S.custom.img); A = new Mascot(r.canvas, S.custom.color || r.color); }
+    catch (e) { S.custom = null; }
+  }
+  if (!A) A = new Romaco();
+  A.root.position.set(0, FLOOR_Y, .05);
+  dev.add(A.root); G.avatar = A;
+  $('#revert').hidden = A.kind === 'romaco';
+  for (let i = 0; i < S.poops; i++) spawnPoop(true);
+  S.poops = G.poops.length;
+  A.baseExpr = baseExprFor(); A.expr = A.baseExpr;
+  hud();
+
+  window.__booted = true;
+  renderer.setAnimationLoop(frame);
+  $('#loading').classList.add('done');
+
+  // 登場演出：くるくる回りながら降ってくる
+  INTRO.y = 3; INTRO.s = .2; ROT.vy = reduceMotion ? 0 : 10; ROT.idle = 0;
+  await tween(1.6, p => { INTRO.y = lerp(3, 0, Ease.outCubic(p)); INTRO.s = lerp(.2, 1, Ease.outBack(p)); });
+  INTRO.y = 0; INTRO.s = 1;
+  const h = new Date().getHours();
+  const slot = h >= 5 && h < 10 ? 'morning' : h < 18 && h >= 10 ? 'day' : h >= 18 && h < 23 ? 'evening' : 'night';
+  let line = pick(L.welcome[slot]);
+  if (away > 3600 && (S.hunger < 30 || S.poops)) line = S.hunger < 30 ? pick(L.hungry) : pick(L.dirty);
+  A.armMode = 'wave'; A.setExpr('smug', 2.5); A.kick(2);
+  setTimeout(() => { if (A.armMode === 'wave') A.armMode = 'rest'; }, 2200);
+  say(line, 3.5);
+  setTimeout(hideHint, 9000);
+}
+boot().catch(e => {
+  console.error(e);
+  $('#loadMsg').textContent = '起動に失敗しちゃった…再読み込みしてみてね（' + (e && e.message || e) + '）';
+});
+</script>
+</body>
+</html>
